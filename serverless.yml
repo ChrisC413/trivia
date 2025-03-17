@@ -1,0 +1,84 @@
+service: trivia-game
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: 
+            - "Fn::GetAtt": [ GameTable, Arn ]
+            - "Fn::Join": ["/", ["Fn::GetAtt": [ GameTable, Arn ], "index/*"]]
+
+functions:
+  createRoom:
+    handler: handlers/room.createRoom
+    events:
+      - websocket:
+          route: createRoom
+  joinRoom:
+    handler: handlers/room.joinRoom
+    events:
+      - websocket:
+          route: joinRoom
+  startGame:
+    handler: handlers/game.startGame
+    events:
+      - websocket:
+          route: startGame
+  submitAnswer:
+    handler: handlers/game.submitAnswer
+    events:
+      - websocket:
+          route: submitAnswer
+  submitThemeGuess:
+    handler: handlers/game.submitThemeGuess
+    events:
+      - websocket:
+          route: submitThemeGuess
+  nextQuestion:
+    handler: handlers/game.nextQuestion
+    events:
+      - websocket:
+          route: nextQuestion
+  disconnect:
+    handler: handlers/room.disconnect
+    events:
+      - websocket:
+          route: disconnect
+
+resources:
+  Resources:
+    GameTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: roomId
+            AttributeType: S
+          - AttributeName: gameId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: roomId
+            KeyType: HASH
+          - AttributeName: gameId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: GameIndex
+            KeySchema:
+              - AttributeName: gameId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL 
