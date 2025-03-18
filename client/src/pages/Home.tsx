@@ -39,37 +39,33 @@ export const Home: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showCreateTriviaSet, setShowCreateTriviaSet] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   useEffect(() => {
     // Connect to WebSocket server when component mounts
-    console.log('Connecting to WebSocket server...');
-    setIsConnecting(true);
-    websocketService.connect('http://localhost:5001');
+    console.log('Setting up WebSocket event handlers...');
 
     const handleEvent = (event: GameEvent) => {
       try {
         console.log('Received event:', event.type, event);
         switch (event.type) {
           case 'connected':
-            console.log('WebSocket connection established');
+            console.log('WebSocket connection established, enabling buttons');
             setIsConnecting(false);
+            setError('');
             break;
           case 'roomCreated':
             console.log('Room created event received:', event);
             setIsCreatingRoom(false);
             setRoomId(event.roomId);
-            // Redirect to host view immediately after room creation
-            console.log('Redirecting to host view:', `/trivia/host/${event.roomId}`);
-            window.location.href = `/trivia/host/${event.roomId}`;
+            // Navigate to game room
+            navigate(`/game/${event.roomId}`);
             break;
           case 'playerJoined':
             console.log('Player joined event received:', event);
             if (event.players.some(p => p.name === playerName)) {
               console.log('Current player joined successfully, redirecting to game room');
-              const gameRoomUrl = `/trivia/game/${roomId}`;
-              console.log('Redirecting to:', gameRoomUrl);
-              window.location.href = gameRoomUrl;
+              navigate(`/game/${roomId}`);
             }
             setIsJoiningRoom(false);
             break;
@@ -92,13 +88,14 @@ export const Home: React.FC = () => {
       }
     };
 
+    console.log('Current connection state - isConnecting:', isConnecting);
     const unsubscribe = websocketService.onEvent(handleEvent);
+
     return () => {
-      console.log('Cleaning up WebSocket connection...');
+      console.log('Cleaning up event handlers...');
       unsubscribe();
-      websocketService.disconnect();
     };
-  }, [playerName, roomId]); // Add dependencies since we use them in the event handler
+  }, [navigate]); // Only depend on navigate since it's needed for room transitions
 
   const handleCreateRoom = () => {
     if (!playerName.trim()) {
@@ -113,7 +110,7 @@ export const Home: React.FC = () => {
       console.log('Creating room with game:', selectedGame.id);
       setIsCreatingRoom(true);
       setError('');
-      websocketService.createRoom(selectedGame.id);
+      websocketService.createRoom(selectedGame.id, playerName.trim());
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       console.error('Error creating room:', error);
@@ -147,20 +144,22 @@ export const Home: React.FC = () => {
   const handleGameSelected = (game: Game) => {
     console.log('Game selected:', game);
     setSelectedGame(game);
-    // Create the room immediately when a game is selected
-    try {
-      console.log('Creating room with game:', game.id);
-      setIsCreatingRoom(true);
-      setError('');
-      websocketService.createRoom(game.id);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error('Error creating room:', error);
-      errorService.logError(error);
-      setError('Failed to create room. Please try again.');
-      setIsCreatingRoom(false);
-    }
     setShowCreateDialog(false);
+    // Create room immediately after game selection
+    if (game) {
+      try {
+        console.log('Creating room with game:', game.id);
+        setIsCreatingRoom(true);
+        setError('');
+        websocketService.createRoom(game.id, playerName.trim());
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error creating room:', error);
+        errorService.logError(error);
+        setError('Failed to create room. Please try again.');
+        setIsCreatingRoom(false);
+      }
+    }
   };
 
   const handleCreateTriviaSet = async (data: { name: string; theme: string; questions: { question: string; answer: string }[] }) => {
@@ -223,7 +222,11 @@ export const Home: React.FC = () => {
 
         <Dialog 
           open={showCreateDialog} 
-          onClose={() => setShowCreateDialog(false)}
+          onClose={() => {
+            setShowCreateDialog(false);
+            setSelectedGame(null);
+            setIsCreatingRoom(false);
+          }}
           maxWidth="md"
           fullWidth
         >
@@ -231,12 +234,22 @@ export const Home: React.FC = () => {
           <DialogContent>
             <TriviaSetSelector 
               open={showCreateDialog}
-              onClose={() => setShowCreateDialog(false)}
+              onClose={() => {
+                setShowCreateDialog(false);
+                setSelectedGame(null);
+                setIsCreatingRoom(false);
+              }}
               onSelect={handleGameSelected}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button onClick={() => {
+              setShowCreateDialog(false);
+              setSelectedGame(null);
+              setIsCreatingRoom(false);
+            }}>
+              Cancel
+            </Button>
           </DialogActions>
         </Dialog>
 
@@ -257,11 +270,11 @@ export const Home: React.FC = () => {
           <DialogActions>
             <Button onClick={() => setShowJoinDialog(false)}>Cancel</Button>
             <Button 
-              onClick={handleJoinRoom} 
+              onClick={handleJoinRoom}
               variant="contained"
-              disabled={!roomId.trim() || isJoiningRoom || isConnecting}
+              disabled={!roomId.trim() || !playerName.trim() || isJoiningRoom}
             >
-              {isJoiningRoom ? <CircularProgress size={24} /> : 'Join Room'}
+              {isJoiningRoom ? <CircularProgress size={24} /> : 'Join'}
             </Button>
           </DialogActions>
         </Dialog>

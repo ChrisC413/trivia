@@ -73,10 +73,10 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
           >
             <ListItemText
               primary={
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography>
                     {player.name}
-                    {player.id === room.host.id && ' (Host)'}
+                    {player.id === room.host && ' (Host)'}
                   </Typography>
                   <Typography>{player.score} points</Typography>
                 </Box>

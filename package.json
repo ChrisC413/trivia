@@ -12,7 +12,12 @@
     "server": "cd server && npm start",
     "server:dev": "cd server && npm run dev",
     "dev": "concurrently \"npm run client\" \"npm run server:dev\"",
-    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:dev": "concurrently \"npm run client\" \"npm run docker:up\""
   },
   "dependencies": {
     "source-map-support": "^0.5.21"

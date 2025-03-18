@@ -51,7 +51,26 @@ const sampleGames = [
 io.on('connection', (socket) => {
   console.log('New client connected');
 
-  socket.on('createRoom', ({ gameId }) => {
+  socket.on('getRoom', ({ roomId }) => {
+    const room = gameRooms.get(roomId);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+
+    socket.emit('roomData', {
+      room: {
+        id: room.id,
+        host: room.host,
+        players: Array.from(room.players.values()),
+        gameState: room.gameState,
+        currentQuestion: room.currentQuestion,
+        game: room.game
+      }
+    });
+  });
+
+  socket.on('createRoom', ({ gameId, playerName }) => {
     let roomId;
     // Keep generating room IDs until we find a unique one
     do {
@@ -63,14 +82,29 @@ io.on('connection', (socket) => {
     gameRooms.set(roomId, {
       id: roomId,
       host: socket.id,
-      players: new Map(),
+      players: new Map([[socket.id, {
+        id: socket.id,
+        name: playerName,
+        score: 0,
+        isHost: true
+      }]]),
       gameState: 'waiting',
       currentQuestion: 0,
       game: sampleGames.find(g => g.id === gameId) || sampleGames[0],
       themeGuesses: new Map()
     });
     socket.join(roomId);
-    socket.emit('roomCreated', { roomId });
+    socket.emit('roomCreated', { 
+      roomId,
+      room: {
+        id: roomId,
+        host: socket.id,
+        players: Array.from(gameRooms.get(roomId).players.values()),
+        gameState: 'waiting',
+        currentQuestion: 0,
+        game: sampleGames.find(g => g.id === gameId) || sampleGames[0]
+      }
+    });
   });
 
   socket.on('joinRoom', ({ roomId, playerName }) => {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -12,25 +11,33 @@ import {
   List,
   ListItem,
   ListItemText,
+  IconButton,
+  Snackbar,
+  Tooltip,
 } from '@mui/material';
 import QRCode from 'qrcode.react';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { websocketService } from '../services/websocket';
 import { Room, GameEvent } from '../types';
 
-export const HostView: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
-  const [room, setRoom] = useState<Room | null>(null);
-  const [error, setError] = useState<string>('');
+interface HostViewProps {
+  room: Room;
+  onError: (error: string) => void;
+}
+
+export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }) => {
+  const [room, setRoom] = useState<Room>(initialRoom);
   const [gameUrl, setGameUrl] = useState<string>('');
+  const [showCopiedNotification, setShowCopiedNotification] = useState(false);
 
   useEffect(() => {
-    if (!roomId) {
-      setError('No room ID provided');
+    if (!room.id) {
+      onError('No room ID provided');
       return;
     }
 
-    console.log('Initializing host view for room:', roomId);
-    setGameUrl(`${window.location.origin}/trivia/game/${roomId}`);
+    console.log('Initializing host view for room:', room.id);
+    setGameUrl(`${window.location.origin}/trivia/game/${room.id}`);
 
     const handleEvent = (event: GameEvent) => {
       console.log('Host received event:', event.type, event);
@@ -38,13 +45,13 @@ export const HostView: React.FC = () => {
         switch (event.type) {
           case 'playerJoined':
             setRoom(prevRoom => ({
-              ...prevRoom!,
+              ...prevRoom,
               players: event.players
             }));
             break;
           case 'gameStarted':
             setRoom(prevRoom => ({
-              ...prevRoom!,
+              ...prevRoom,
               gameState: 'playing',
               currentQuestion: event.questionNumber,
               questionStartTime: event.startTime
@@ -52,7 +59,6 @@ export const HostView: React.FC = () => {
             break;
           case 'playerScored':
             setRoom(prevRoom => {
-              if (!prevRoom) return null;
               const updatedPlayers = prevRoom.players.map(p =>
                 p.id === event.playerId
                   ? { ...p, score: event.score, lastAnswerTime: event.answerTime }
@@ -62,68 +68,96 @@ export const HostView: React.FC = () => {
             });
             break;
           case 'error':
-            setError(event.message);
+            onError(event.message);
             break;
         }
       } catch (err) {
         console.error('Error handling event:', err);
-        setError('An unexpected error occurred');
+        onError('An unexpected error occurred');
       }
     };
 
     const unsubscribe = websocketService.onEvent(handleEvent);
     return () => unsubscribe();
-  }, [roomId]);
+  }, [room.id, onError]);
 
   const handleStartGame = () => {
-    if (!room) return;
-    websocketService.startGame(roomId!, room.game.id);
+    websocketService.startGame(room.id, room.game.id);
   };
 
   const handleNextQuestion = () => {
-    websocketService.nextQuestion(roomId!);
+    websocketService.nextQuestion(room.id);
   };
 
   const handleEndGame = () => {
-    websocketService.endGame(roomId!);
+    websocketService.endGame(room.id);
   };
 
-  if (!roomId) {
-    return (
-      <Container>
-        <Alert severity="error">No room ID provided</Alert>
-      </Container>
-    );
-  }
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(gameUrl);
+      setShowCopiedNotification(true);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      onError('Failed to copy link to clipboard');
+    }
+  };
 
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Paper sx={{ p: 3 }}>
               <Typography variant="h4" gutterBottom>
-                Game Room: {roomId}
+                Game Room: {room.id}
               </Typography>
               
               <Box sx={{ mt: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  Join URL:
+                  Share with Players:
                 </Typography>
-                <Typography variant="body1" sx={{ wordBreak: 'break-all', mb: 2 }}>
-                  {gameUrl}
-                </Typography>
-                {room && room.gameState === 'playing' && (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                    <QRCode value={gameUrl} size={200} level="H" />
-                  </Box>
-                )}
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  mb: 2,
+                  p: 2,
+                  bgcolor: 'grey.100',
+                  borderRadius: 1
+                }}>
+                  <Typography 
+                    variant="body1" 
+                    sx={{ 
+                      flexGrow: 1,
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all'
+                    }}
+                  >
+                    {gameUrl}
+                  </Typography>
+                  <Tooltip title="Copy link">
+                    <IconButton onClick={handleCopyLink} size="small">
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  mb: 2,
+                  p: 2,
+                  bgcolor: 'grey.100',
+                  borderRadius: 1
+                }}>
+                  <QRCode 
+                    value={gameUrl} 
+                    size={200} 
+                    level="H"
+                    includeMargin={true}
+                    style={{ background: 'white', padding: '1rem' }}
+                  />
+                </Box>
               </Box>
 
               <Box sx={{ mt: 3 }}>
@@ -131,7 +165,7 @@ export const HostView: React.FC = () => {
                   variant="contained"
                   color="primary"
                   onClick={handleStartGame}
-                  disabled={!room || room.gameState === 'playing'}
+                  disabled={room.gameState === 'playing'}
                   sx={{ mr: 2 }}
                 >
                   Start Game
@@ -139,7 +173,7 @@ export const HostView: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={handleNextQuestion}
-                  disabled={!room || room.gameState !== 'playing'}
+                  disabled={room.gameState !== 'playing'}
                   sx={{ mr: 2 }}
                 >
                   Next Question
@@ -148,7 +182,7 @@ export const HostView: React.FC = () => {
                   variant="contained"
                   color="error"
                   onClick={handleEndGame}
-                  disabled={!room || room.gameState !== 'playing'}
+                  disabled={room.gameState !== 'playing'}
                 >
                   End Game
                 </Button>
@@ -161,24 +195,27 @@ export const HostView: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 Players
               </Typography>
-              {room ? (
-                <List>
-                  {room.players.map((player) => (
-                    <ListItem key={player.id}>
-                      <ListItemText
-                        primary={player.name}
-                        secondary={`Score: ${player.score}`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <CircularProgress />
-              )}
+              <List>
+                {room.players.map((player) => (
+                  <ListItem key={player.id}>
+                    <ListItemText
+                      primary={player.name}
+                      secondary={`Score: ${player.score}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
             </Paper>
           </Grid>
         </Grid>
       </Box>
+
+      <Snackbar
+        open={showCopiedNotification}
+        autoHideDuration={2000}
+        onClose={() => setShowCopiedNotification(false)}
+        message="Link copied to clipboard!"
+      />
     </Container>
   );
 }; 

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { Home } from './pages/Home';
 import { GameRoom } from './pages/GameRoom';
-import { HostView } from './pages/HostView';
 import { websocketService } from './services/websocket';
 
 // Create a theme instance
@@ -20,9 +19,8 @@ const theme = createTheme({
 });
 
 function App() {
-  // Connect to WebSocket server when the app starts
+  // Clean up WebSocket connection when the app unmounts
   React.useEffect(() => {
-    websocketService.connect(process.env.REACT_APP_WEBSOCKET_URL || 'http://localhost:5001');
     return () => {
       websocketService.disconnect();
     };
@@ -35,7 +33,6 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/game/:roomId" element={<GameRoom />} />
-          <Route path="/host/:roomId" element={<HostView />} />
         </Routes>
       </Router>
     </ThemeProvider>

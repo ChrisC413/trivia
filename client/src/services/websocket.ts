@@ -1,12 +1,61 @@
-import { GameEvent } from '../types';
+import { GameEvent, Room } from '../types';
 import { io, Socket } from 'socket.io-client';
 
-class WebSocketService {
+export class WebSocketService {
   private socket: Socket | null = null;
+  private playerId: string | null = null;
   private eventHandlers: ((event: GameEvent) => void)[] = [];
+  private isInitialized = false;
 
   constructor() {
-    // Remove automatic simulation
+    this.initializeConnection();
+  }
+
+  private initializeConnection() {
+    if (this.isInitialized) {
+      return;
+    }
+
+    this.isInitialized = true;
+    console.log('Initializing WebSocket connection...');
+
+    this.socket = io('http://localhost:5001');
+    
+    this.socket.on('connect', () => {
+      console.log('Socket connected, socket.id:', this.socket?.id);
+      this.playerId = this.socket?.id || null;
+      
+      // Emit connected event to handlers immediately after socket connects
+      this.eventHandlers.forEach(handler => 
+        handler({ type: 'connected' })
+      );
+    });
+
+    this.socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+      this.playerId = null;
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      this.eventHandlers.forEach(handler => 
+        handler({ 
+          type: 'error', 
+          message: 'Failed to connect to server' 
+        })
+      );
+    });
+
+    // If socket is already connected when handlers are added, emit connected event
+    if (this.socket.connected) {
+      console.log('Socket already connected, emitting connected event');
+      this.playerId = this.socket.id || null;
+      this.eventHandlers.forEach(handler => 
+        handler({ type: 'connected' })
+      );
+    }
+
+    this.setupSocketHandlers();
   }
 
   private simulateEvents(type: 'create' | 'join', playerName?: string) {
@@ -25,8 +74,8 @@ class WebSocketService {
           handler({ 
             type: 'playerJoined', 
             players: [
-              { id: 'player1', name: playerName || 'Test Player', score: 0 },
-              { id: 'player2', name: 'Another Player', score: 0 }
+              { id: 'player1', name: playerName || 'Test Player', score: 0, isHost: false },
+              { id: 'player2', name: 'Another Player', score: 0, isHost: false }
             ]
           })
         );
@@ -98,62 +147,23 @@ class WebSocketService {
           winner: {
             id: 'player1',
             name: 'Test Player',
-            score: 100
+            score: 100,
+            isHost: false
           }
         })
       );
     }, 2000);
   }
 
-  connect(url: string) {
-    try {
-      // Convert ws:// to http:// for Socket.IO
-      const socketUrl = url.replace('ws://', 'http://');
-      this.socket = io(socketUrl, {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        transports: ['websocket', 'polling'],
-        withCredentials: true,
-        extraHeaders: {
-          "Access-Control-Allow-Origin": "*"
-        }
-      });
-
-      this.setupSocketHandlers();
-    } catch (error) {
-      console.error('Failed to connect to Socket.IO:', error);
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'error', 
-          message: 'Failed to connect to server' 
-        })
-      );
-    }
-  }
-
-  private setupSocketHandlers() {
+  private setupSocketHandlers(): void {
     if (!this.socket) return;
 
-    this.socket.on('connect', () => {
-      console.log('Socket.IO connected');
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'connected'
-        })
-      );
-    });
-
-    this.socket.on('disconnect', () => {
-      console.log('Socket.IO disconnected');
-    });
-
-    this.socket.on('error', (error) => {
-      console.error('Socket.IO error:', error);
+    this.socket.on('error', (error: any) => {
+      console.error('WebSocket error:', error);
       this.eventHandlers.forEach(handler => 
         handler({ 
           type: 'error', 
-          message: 'Connection error' 
+          message: error.message || 'An error occurred' 
         })
       );
     });
@@ -167,71 +177,119 @@ class WebSocketService {
     });
   }
 
-  onEvent(handler: (event: GameEvent) => void) {
+  public onEvent(handler: (event: GameEvent) => void): () => void {
     this.eventHandlers.push(handler);
+    
+    // If already connected, emit the connected event immediately
+    if (this.socket?.connected) {
+      console.log('Emitting connected event to new handler');
+      handler({ type: 'connected' });
+    }
+
     return () => {
-      this.eventHandlers = this.eventHandlers.filter(h => h !== handler);
+      const index = this.eventHandlers.indexOf(handler);
+      if (index > -1) {
+        this.eventHandlers.splice(index, 1);
+      }
     };
   }
 
-  createRoom(gameId: string) {
-    if (!this.socket?.connected) {
-      console.error('Socket not connected. Cannot create room.');
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'error', 
-          message: 'Not connected to server. Please try again.' 
-        })
-      );
-      return;
+  public on(event: string, callback: (...args: any[]) => void) {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
     }
-    console.log('Creating room with game ID:', gameId);
-    this.socket.emit('createRoom', { gameId });
+    this.socket.on(event, callback);
   }
 
-  joinRoom(roomId: string, playerName: string) {
-    if (!this.socket?.connected) {
-      console.error('Socket not connected. Cannot join room.');
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'error', 
-          message: 'Not connected to server. Please try again.' 
-        })
-      );
-      return;
+  public off(event: string, callback: (...args: any[]) => void) {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
     }
-    console.log('Joining room:', roomId, 'as player:', playerName);
+    this.socket.off(event, callback);
+  }
+
+  public getPlayerId(): string | null {
+    return this.playerId;
+  }
+
+  public getRoom(roomId: string): Promise<Room> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('getRoom', { roomId });
+      
+      const handleRoomData = (data: { room: Room }) => {
+        this.socket?.off('roomData', handleRoomData);
+        this.socket?.off('error', handleError);
+        resolve(data.room);
+      };
+
+      const handleError = (error: { message: string }) => {
+        this.socket?.off('roomData', handleRoomData);
+        this.socket?.off('error', handleError);
+        reject(new Error(error.message));
+      };
+
+      this.socket.on('roomData', handleRoomData);
+      this.socket.on('error', handleError);
+
+      // Set a timeout to prevent hanging
+      setTimeout(() => {
+        this.socket?.off('roomData', handleRoomData);
+        this.socket?.off('error', handleError);
+        reject(new Error('Request timed out'));
+      }, 5000);
+    });
+  }
+
+  public createRoom(gameId: string, playerName: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
+    this.socket.emit('createRoom', { gameId, playerName });
+  }
+
+  public joinRoom(roomId: string, playerName: string): void {
+    if (!this.socket) {
+      throw new Error('Socket not connected');
+    }
     this.socket.emit('joinRoom', { roomId, playerName });
   }
 
-  startGame(roomId: string, gameId: string) {
-    console.log('Starting game in room:', roomId, 'with game:', gameId);
-    this.socket?.emit('startGame', { roomId, gameId });
+  public startGame(roomId: string, gameId: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('startGame', { roomId, gameId });
   }
 
-  submitAnswer(roomId: string, answer: string) {
-    console.log('Submitting answer for room:', roomId, 'answer:', answer);
-    this.socket?.emit('submitAnswer', { roomId, answer });
+  public submitAnswer(roomId: string, answer: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('submitAnswer', { roomId, answer });
   }
 
-  submitThemeGuess(roomId: string, theme: string) {
-    console.log('Submitting theme guess for room:', roomId, 'theme:', theme);
-    this.socket?.emit('submitThemeGuess', { roomId, theme });
+  public submitThemeGuess(roomId: string, themeGuess: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('submitThemeGuess', { roomId, themeGuess });
   }
 
-  nextQuestion(roomId: string) {
-    console.log('Moving to next question in room:', roomId);
-    this.socket?.emit('nextQuestion', { roomId });
+  public nextQuestion(roomId: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('nextQuestion', { roomId });
   }
 
-  endGame(roomId: string) {
-    console.log('Ending game in room:', roomId);
-    this.socket?.emit('endGame', { roomId });
+  public endGame(roomId: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('endGame', { roomId });
   }
 
-  disconnect() {
-    this.socket?.disconnect();
-    this.socket = null;
+  public disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.playerId = null;
+    }
   }
 }
 

@@ -2,6 +2,7 @@ export interface Player {
   id: string;
   name: string;
   score: number;
+  isHost: boolean;
   lastAnswerTime?: number;
   lastAnswerCorrect?: boolean;
   themeGuess?: string;
@@ -21,8 +22,8 @@ export interface Game {
 }
 
 export interface Room {
-  roomId: string;
-  host: Player;
+  id: string;
+  host: string;
   players: Player[];
   gameState: 'waiting' | 'playing' | 'finished';
   currentQuestion: number;

@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=development
+      - PORT=5001
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  # We'll keep the client running locally for now during development
+  # Later we can add a production setup that builds and serves the client 

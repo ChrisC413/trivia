@@ -1,356 +1,154 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Container,
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Grid,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import { QRCodeSVG } from 'qrcode.react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Box, CircularProgress, Alert } from '@mui/material';
 import { websocketService } from '../services/websocket';
-import { errorService } from '../services/errorService';
-import { GameStatus } from '../components/GameStatus';
-import { HostView } from '../components/HostView';
-import { GameEvent, Player, Question, Room } from '../types';
+import { Room, Player, Question } from '../types';
+import { HostView } from './HostView';
+import { PlayerView } from './PlayerView';
+
+interface GameEvent {
+  roomId: string;
+  room: Room;
+  playerId?: string;
+  type?: string;
+  message?: string;
+}
 
 export const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
-  const navigate = useNavigate();
   const [room, setRoom] = useState<Room | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  const [questionNumber, setQuestionNumber] = useState(0);
-  const [answer, setAnswer] = useState('');
-  const [themeGuess, setThemeGuess] = useState('');
-  const [gameState, setGameState] = useState<'waiting' | 'playing' | 'finished'>('waiting');
+  const [error, setError] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
-  const [error, setError] = useState('');
-  const [gameUrl, setGameUrl] = useState('');
-  const [currentPlayerId, setCurrentPlayerId] = useState('');
-  const [roomIdState, setRoomId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get room ID from URL path
-    const pathSegments = window.location.pathname.split('/');
-    const urlRoomId = pathSegments[pathSegments.length - 1];
-    
-    console.log('Initializing game room with URL room ID:', urlRoomId);
-    
-    if (!urlRoomId) {
-      console.error('No room ID found in URL, redirecting to home');
-      window.location.href = '/trivia';
-      return;
-    }
+    if (!roomId) return;
 
-    setRoomId(urlRoomId);
-    setGameUrl(`${window.location.origin}/trivia/game/${urlRoomId}`);
+    const handleRoomCreated = (data: { roomId: string; room: Room }) => {
+      setRoom(data.room);
+      setPlayerId(data.room.host);
+      setIsLoading(false);
+      setIsHost(true);
+    };
 
-    const handleEvent = (event: GameEvent) => {
-      try {
-        console.log('Game room received event:', event.type, event);
-        switch (event.type) {
-          case 'roomCreated':
-            console.log('Setting game URL:', `${window.location.origin}/trivia/game/${event.roomId}`);
-            setGameUrl(`${window.location.origin}/trivia/game/${event.roomId}`);
-            break;
-          case 'playerJoined':
-            console.log('Updating room with new players:', event.players);
-            if (room) {
-              setRoom({
-                ...room,
-                players: event.players
-              });
-            }
-            break;
-          case 'gameStarted':
-            console.log('Game started:', event);
-            setRoom(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                gameState: 'playing',
-                currentQuestion: event.questionNumber,
-                questionStartTime: event.startTime
-              };
-            });
-            break;
-          case 'playerScored':
-            console.log('Player scored:', event);
-            setRoom(prev => {
-              if (!prev) return null;
-              const updatedPlayers = prev.players.map(p =>
-                p.id === event.playerId
-                  ? { ...p, score: event.score, lastAnswerTime: event.answerTime }
-                  : p
-              );
-              return { ...prev, players: updatedPlayers };
-            });
-            break;
-          case 'nextQuestion':
-            console.log('Next question:', event);
-            setRoom(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                currentQuestion: event.questionNumber,
-                questionStartTime: event.startTime
-              };
-            });
-            break;
-          case 'gameFinished':
-            console.log('Game finished:', event);
-            setRoom(prev => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                gameState: 'finished',
-                players: prev.players.map(p =>
-                  p.id === event.winner.id ? { ...p, score: event.winner.score } : p
-                )
-              };
-            });
-            break;
-          case 'error':
-            console.error('Game room error:', event.message);
-            setError(event.message);
-            if (event.message.includes('Room not found') || event.message.includes('Invalid room')) {
-              console.log('Critical error, redirecting to home');
-              window.location.href = '/trivia';
-            }
-            break;
+    const handlePlayerJoined = (data: { players: Player[] }) => {
+      if (room) {
+        setRoom({ ...room, players: data.players });
+        // Only set playerId for non-host players when they first join
+        if (!playerId && !isHost) {
+          const currentPlayer = data.players.find(p => !p.isHost);
+          if (currentPlayer) {
+            setPlayerId(currentPlayer.id);
+          }
         }
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        console.error('Error handling game event:', error);
-        errorService.logError(error);
-        setError('An unexpected error occurred');
       }
     };
 
-    console.log('Setting up WebSocket event listener');
-    const unsubscribe = websocketService.onEvent(handleEvent);
-    return () => {
-      console.log('Cleaning up WebSocket event listener');
-      unsubscribe();
+    const handleGameStarted = (data: { question: Question; questionNumber: number }) => {
+      if (room) {
+        setRoom({
+          ...room,
+          gameState: 'playing',
+          currentQuestion: data.questionNumber - 1
+        });
+      }
     };
-  }, [room]);
 
-  const handleSubmitAnswer = () => {
-    if (!roomId || !answer.trim()) return;
-    try {
-      websocketService.submitAnswer(roomId, answer.trim());
-      setAnswer('');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      errorService.logError(error);
-      setError('Failed to submit answer. Please try again.');
-    }
-  };
+    const handleGameUpdated = (event: GameEvent) => {
+      if (event.roomId === roomId) {
+        setRoom(event.room);
+      }
+    };
 
-  const handleSubmitThemeGuess = () => {
-    if (!roomId || !themeGuess.trim()) return;
-    try {
-      websocketService.submitThemeGuess(roomId, themeGuess);
-      setThemeGuess('');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      errorService.logError(error);
-      setError('Failed to submit theme guess. Please try again.');
-    }
-  };
+    const handleGameEnded = (event: GameEvent) => {
+      if (event.roomId === roomId) {
+        setRoom(event.room);
+      }
+    };
 
-  const handleStartGame = () => {
-    if (!roomId) return;
-    try {
-      websocketService.startGame(roomId, room?.game.id || '');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      errorService.logError(error);
-      setError('Failed to start game. Please try again.');
-    }
-  };
+    const handleError = (error: { message: string }) => {
+      setError(error.message);
+      setIsLoading(false);
+    };
 
-  const handleNextQuestion = () => {
-    if (!roomId) return;
-    try {
-      websocketService.nextQuestion(roomId);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      errorService.logError(error);
-      setError('Failed to advance to next question. Please try again.');
-    }
-  };
+    // Set up event listeners
+    websocketService.on('roomCreated', handleRoomCreated);
+    websocketService.on('playerJoined', handlePlayerJoined);
+    websocketService.on('gameStarted', handleGameStarted);
+    websocketService.on('gameUpdated', handleGameUpdated);
+    websocketService.on('gameEnded', handleGameEnded);
+    websocketService.on('error', handleError);
 
-  const handleEndGame = () => {
-    if (!roomId) return;
-    try {
-      websocketService.endGame(roomId);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      errorService.logError(error);
-      setError('Failed to end game. Please try again.');
-    }
-  };
+    // Get initial room state
+    const initializeRoom = async () => {
+      try {
+        const roomData = await websocketService.getRoom(roomId);
+        setRoom(roomData);
+        
+        // Check if current user is the host
+        const currentPlayerId = websocketService.getPlayerId();
+        if (roomData.host === currentPlayerId) {
+          setIsHost(true);
+          setPlayerId(currentPlayerId);
+        } else {
+          // If not host, must be a player
+          const player = roomData.players.find(p => p.id === currentPlayerId);
+          if (player) {
+            setPlayerId(player.id);
+          }
+        }
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to get room data:', err);
+        setError('Failed to load room data. Please try again.');
+        setIsLoading(false);
+      }
+    };
 
-  const handleClearCache = () => {
-    errorService.clearLocalCache();
-    window.location.reload();
-  };
+    initializeRoom();
 
-  if (!room) {
+    return () => {
+      websocketService.off('roomCreated', handleRoomCreated);
+      websocketService.off('playerJoined', handlePlayerJoined);
+      websocketService.off('gameStarted', handleGameStarted);
+      websocketService.off('gameUpdated', handleGameUpdated);
+      websocketService.off('gameEnded', handleGameEnded);
+      websocketService.off('error', handleError);
+    };
+  }, [roomId]);
+
+  if (isLoading) {
     return (
-      <Container>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!room || !playerId) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <Alert severity="error">
+          {error || 'Unable to join game room. Please try again.'}
+        </Alert>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ mb: 2 }}
-            action={
-              <Button color="inherit" size="small" onClick={handleClearCache}>
-                Clear Cache
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        )}
-
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <GameStatus room={room} currentPlayerId={currentPlayerId} />
-          </Grid>
-
-          {room.gameState === 'waiting' && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" gutterBottom>
-                  Game URL
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
-                  <Typography>{gameUrl}</Typography>
-                  <QRCodeSVG value={gameUrl} size={100} />
-                </Box>
-                {isHost && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleStartGame}
-                    disabled={room.players.length < 2}
-                  >
-                    Start Game
-                  </Button>
-                )}
-              </Paper>
-            </Grid>
-          )}
-
-          {room.gameState === 'playing' && isHost && (
-            <Grid item xs={12}>
-              <HostView
-                room={room}
-                onNextQuestion={handleNextQuestion}
-                onEndGame={handleEndGame}
-              />
-            </Grid>
-          )}
-
-          {room.gameState === 'playing' && !isHost && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Question {room.currentQuestion} of {room.game.questions.length}
-                </Typography>
-                <Typography variant="h5" gutterBottom>
-                  {room.game.questions[room.currentQuestion - 1].question}
-                </Typography>
-                <Box sx={{ mt: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Your Answer"
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitAnswer()}
-                  />
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSubmitAnswer}
-                    sx={{ mt: 2 }}
-                  >
-                    Submit Answer
-                  </Button>
-                </Box>
-              </Paper>
-            </Grid>
-          )}
-
-          {room.gameState === 'playing' && !isHost && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Guess the Theme
-                </Typography>
-                <Box sx={{ mt: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Theme Guess"
-                    value={themeGuess}
-                    onChange={(e) => setThemeGuess(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSubmitThemeGuess()}
-                  />
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    onClick={handleSubmitThemeGuess}
-                    sx={{ mt: 2 }}
-                  >
-                    Submit Theme Guess
-                  </Button>
-                </Box>
-              </Paper>
-            </Grid>
-          )}
-
-          {room.gameState === 'finished' && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h5" gutterBottom>
-                  Game Over!
-                </Typography>
-                <Typography variant="h6" gutterBottom>
-                  Winner: {room.players.sort((a, b) => b.score - a.score)[0].name}
-                </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/')}
-                  sx={{ mt: 2 }}
-                >
-                  Back to Home
-                </Button>
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
-      </Box>
-    </Container>
+    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      
+      {isHost ? (
+        <HostView room={room} onError={setError} />
+      ) : (
+        <PlayerView room={room} playerId={playerId} onError={setError} />
+      )}
+    </Box>
   );
 }; 
