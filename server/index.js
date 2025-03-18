@@ -2,19 +2,30 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
-const { v4: uuidv4 } = require('uuid');
+const { generateRoomId } = require('./constants/words');
 const QRCode = require('qrcode');
 
 const app = express();
 const server = http.createServer(app);
+
+// More permissive CORS configuration for Socket.IO
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: "*",  // Allow all origins in development
+    methods: ["GET", "POST"],
+    allowedHeaders: ["*"],
+    credentials: true
   }
 });
 
-app.use(cors());
+// More permissive CORS for Express
+app.use(cors({
+  origin: "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204
+}));
+
 app.use(express.json());
 
 // Store active game rooms
@@ -40,15 +51,22 @@ const sampleGames = [
 io.on('connection', (socket) => {
   console.log('New client connected');
 
-  socket.on('createRoom', () => {
-    const roomId = uuidv4();
+  socket.on('createRoom', ({ gameId }) => {
+    let roomId;
+    // Keep generating room IDs until we find a unique one
+    do {
+      roomId = generateRoomId();
+    } while (gameRooms.has(roomId));
+
+    console.log('Creating room with ID:', roomId);
+    
     gameRooms.set(roomId, {
       id: roomId,
       host: socket.id,
       players: new Map(),
       gameState: 'waiting',
       currentQuestion: 0,
-      game: null,
+      game: sampleGames.find(g => g.id === gameId) || sampleGames[0],
       themeGuesses: new Map()
     });
     socket.join(roomId);
@@ -170,7 +188,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 }); 

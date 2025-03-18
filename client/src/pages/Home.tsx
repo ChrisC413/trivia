@@ -1,192 +1,287 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
   Typography,
-  Button,
   TextField,
+  Button,
   Paper,
   Grid,
-  Fab,
-  Snackbar,
+  List,
+  ListItem,
+  ListItemText,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
   Alert,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { websocketService } from '../services/websocket';
+import { errorService } from '../services/errorService';
 import { CreateTriviaSet } from '../components/CreateTriviaSet';
 import { TriviaSetSelector } from '../components/TriviaSetSelector';
-import { triviaService, TriviaSet } from '../services/triviaService';
+import { Game, GameEvent } from '../types';
+import { triviaService } from '../services/triviaService';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [roomId, setRoomId] = useState('');
   const [playerName, setPlayerName] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [error, setError] = useState('');
-  const [createTriviaSetOpen, setCreateTriviaSetOpen] = useState(false);
-  const [selectTriviaSetOpen, setSelectTriviaSetOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showCreateTriviaSet, setShowCreateTriviaSet] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  useEffect(() => {
+    // Connect to WebSocket server when component mounts
+    console.log('Connecting to WebSocket server...');
+    setIsConnecting(true);
+    websocketService.connect('http://localhost:5001');
+
+    const handleEvent = (event: GameEvent) => {
+      try {
+        console.log('Received event:', event.type, event);
+        switch (event.type) {
+          case 'connected':
+            console.log('WebSocket connection established');
+            setIsConnecting(false);
+            break;
+          case 'roomCreated':
+            console.log('Room created event received:', event);
+            setIsCreatingRoom(false);
+            setRoomId(event.roomId);
+            // Redirect to host view immediately after room creation
+            console.log('Redirecting to host view:', `/trivia/host/${event.roomId}`);
+            window.location.href = `/trivia/host/${event.roomId}`;
+            break;
+          case 'playerJoined':
+            console.log('Player joined event received:', event);
+            if (event.players.some(p => p.name === playerName)) {
+              console.log('Current player joined successfully, redirecting to game room');
+              const gameRoomUrl = `/trivia/game/${roomId}`;
+              console.log('Redirecting to:', gameRoomUrl);
+              window.location.href = gameRoomUrl;
+            }
+            setIsJoiningRoom(false);
+            break;
+          case 'error':
+            console.error('Error event received:', event.message);
+            setError(event.message);
+            setIsCreatingRoom(false);
+            setIsJoiningRoom(false);
+            setIsConnecting(false);
+            break;
+        }
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        console.error('Error in event handler:', error);
+        errorService.logError(error);
+        setError('An unexpected error occurred. Please try again.');
+        setIsCreatingRoom(false);
+        setIsJoiningRoom(false);
+        setIsConnecting(false);
+      }
+    };
+
+    const unsubscribe = websocketService.onEvent(handleEvent);
+    return () => {
+      console.log('Cleaning up WebSocket connection...');
+      unsubscribe();
+      websocketService.disconnect();
+    };
+  }, [playerName, roomId]); // Add dependencies since we use them in the event handler
 
   const handleCreateRoom = () => {
-    if (!playerName) {
+    if (!playerName.trim()) {
       setError('Please enter your name');
       return;
     }
-    setSelectTriviaSetOpen(true);
+    if (!selectedGame) {
+      setError('Please select a trivia set');
+      return;
+    }
+    try {
+      console.log('Creating room with game:', selectedGame.id);
+      setIsCreatingRoom(true);
+      setError('');
+      websocketService.createRoom(selectedGame.id);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Error creating room:', error);
+      errorService.logError(error);
+      setError('Failed to create room. Please try again.');
+      setIsCreatingRoom(false);
+    }
   };
 
   const handleJoinRoom = () => {
-    if (!roomId || !playerName) {
-      setError('Please enter both room ID and your name');
+    if (!playerName.trim()) {
+      setError('Please enter your name');
       return;
     }
-    websocketService.joinRoom(roomId, playerName);
-    navigate(`/game/${roomId}`);
-  };
-
-  const handleCreateTriviaSet = (triviaSet: Omit<TriviaSet, 'id' | 'createdAt' | 'rating'>) => {
+    if (!roomId.trim()) {
+      setError('Please enter a room ID');
+      return;
+    }
     try {
-      triviaService.saveTriviaSet(triviaSet);
-      setSnackbar({
-        open: true,
-        message: 'Trivia set created successfully!',
-        severity: 'success',
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Failed to create trivia set',
-        severity: 'error',
-      });
+      setIsJoiningRoom(true);
+      setError('');
+      websocketService.joinRoom(roomId, playerName);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      errorService.logError(error);
+      setError('Failed to join room. Please try again.');
+      setIsJoiningRoom(false);
     }
   };
 
-  const handleSelectTriviaSet = (triviaSet: TriviaSet) => {
-    setSelectTriviaSetOpen(false);
-    websocketService.createRoom();
-    // TODO: Pass the selected trivia set to the game room
-    navigate(`/game/${roomId}`);
+  const handleGameSelected = (game: Game) => {
+    console.log('Game selected:', game);
+    setSelectedGame(game);
+    // Create the room immediately when a game is selected
+    try {
+      console.log('Creating room with game:', game.id);
+      setIsCreatingRoom(true);
+      setError('');
+      websocketService.createRoom(game.id);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Error creating room:', error);
+      errorService.logError(error);
+      setError('Failed to create room. Please try again.');
+      setIsCreatingRoom(false);
+    }
+    setShowCreateDialog(false);
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
+  const handleCreateTriviaSet = async (data: { name: string; theme: string; questions: { question: string; answer: string }[] }) => {
+    try {
+      await triviaService.saveTriviaSet(data);
+      setShowCreateTriviaSet(false);
+      setError('Trivia set created successfully!');
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      errorService.logError(error);
+      setError('Failed to create trivia set. Please try again.');
+    }
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box sx={{ mt: 8, mb: 4 }}>
-        <Typography variant="h3" component="h1" gutterBottom align="center">
-          Trivia Game
-        </Typography>
-        <Typography variant="h6" align="center" color="text.secondary" paragraph>
-          Create a new game room or join an existing one
-        </Typography>
-      </Box>
+    <Container maxWidth="md">
+      <Box sx={{ mt: 4 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <TextField
-              fullWidth
-              label="Your Name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              margin="normal"
-              required
-            />
-            {error && (
-              <Typography color="error" sx={{ mt: 1 }}>
-                {error}
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Welcome to Trivia Game!
               </Typography>
-            )}
-          </Paper>
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Your Name"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setShowCreateDialog(true)}
+                    disabled={!playerName.trim() || isCreatingRoom || isConnecting}
+                  >
+                    {isCreatingRoom ? <CircularProgress size={24} /> : 'Create Room'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={() => setShowJoinDialog(true)}
+                    disabled={!playerName.trim() || isJoiningRoom || isConnecting}
+                  >
+                    {isJoiningRoom ? <CircularProgress size={24} /> : 'Join Room'}
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          </Grid>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Create New Game
-            </Typography>
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              onClick={handleCreateRoom}
-            >
-              Create Room
-            </Button>
-          </Paper>
-        </Grid>
+        <Dialog 
+          open={showCreateDialog} 
+          onClose={() => setShowCreateDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>Select Trivia Set</DialogTitle>
+          <DialogContent>
+            <TriviaSetSelector 
+              open={showCreateDialog}
+              onClose={() => setShowCreateDialog(false)}
+              onSelect={handleGameSelected}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+          </DialogActions>
+        </Dialog>
 
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Join Existing Game
-            </Typography>
+        <Dialog 
+          open={showJoinDialog} 
+          onClose={() => setShowJoinDialog(false)}
+        >
+          <DialogTitle>Join Room</DialogTitle>
+          <DialogContent>
             <TextField
               fullWidth
               label="Room ID"
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              margin="normal"
-              required
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              color="secondary"
-              onClick={handleJoinRoom}
               sx={{ mt: 2 }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowJoinDialog(false)}>Cancel</Button>
+            <Button 
+              onClick={handleJoinRoom} 
+              variant="contained"
+              disabled={!roomId.trim() || isJoiningRoom || isConnecting}
             >
-              Join Room
+              {isJoiningRoom ? <CircularProgress size={24} /> : 'Join Room'}
             </Button>
-          </Paper>
-        </Grid>
-      </Grid>
+          </DialogActions>
+        </Dialog>
 
-      <Fab
-        color="primary"
-        variant="extended"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        onClick={() => setCreateTriviaSetOpen(true)}
-      >
-        <AddIcon sx={{ mr: 1 }} />
-        Create Trivia Set
-      </Fab>
+        <CreateTriviaSet
+          open={showCreateTriviaSet}
+          onClose={() => setShowCreateTriviaSet(false)}
+          onSubmit={handleCreateTriviaSet}
+        />
 
-      <CreateTriviaSet
-        open={createTriviaSetOpen}
-        onClose={() => setCreateTriviaSetOpen(false)}
-        onSubmit={handleCreateTriviaSet}
-      />
-
-      <TriviaSetSelector
-        open={selectTriviaSetOpen}
-        onClose={() => setSelectTriviaSetOpen(false)}
-        onSelect={handleSelectTriviaSet}
-      />
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setShowCreateTriviaSet(true)}
+          sx={{ position: 'fixed', bottom: 16, right: 16 }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          Create Trivia Set
+        </Button>
+      </Box>
     </Container>
   );
 }; 
