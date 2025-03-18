@@ -36,6 +36,7 @@ export interface Room {
 
 export type GameEvent =
   | { type: 'connected' }
+  | { type: 'disconnected' }
   | { type: 'roomCreated'; roomId: string }
   | { type: 'playerJoined'; players: Player[] }
   | { type: 'gameStarted'; question: Question; questionNumber: number; startTime: number }

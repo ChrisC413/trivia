@@ -44,6 +44,7 @@ export const Home: React.FC = () => {
   useEffect(() => {
     // Connect to WebSocket server when component mounts
     console.log('Setting up WebSocket event handlers...');
+    setIsConnecting(true); // Ensure buttons are disabled while connecting
 
     const handleEvent = (event: GameEvent) => {
       try {
@@ -53,6 +54,11 @@ export const Home: React.FC = () => {
             console.log('WebSocket connection established, enabling buttons');
             setIsConnecting(false);
             setError('');
+            break;
+          case 'disconnected':
+            console.log('WebSocket disconnected, disabling buttons');
+            setIsConnecting(true);
+            setError('Connection lost. Attempting to reconnect...');
             break;
           case 'roomCreated':
             console.log('Room created event received:', event);
@@ -74,7 +80,9 @@ export const Home: React.FC = () => {
             setError(event.message);
             setIsCreatingRoom(false);
             setIsJoiningRoom(false);
-            setIsConnecting(false);
+            if (event.message.includes('connect')) {
+              setIsConnecting(true);
+            }
             break;
         }
       } catch (err) {
@@ -84,18 +92,17 @@ export const Home: React.FC = () => {
         setError('An unexpected error occurred. Please try again.');
         setIsCreatingRoom(false);
         setIsJoiningRoom(false);
-        setIsConnecting(false);
       }
     };
 
-    console.log('Current connection state - isConnecting:', isConnecting);
     const unsubscribe = websocketService.onEvent(handleEvent);
 
+    // Cleanup function
     return () => {
       console.log('Cleaning up event handlers...');
       unsubscribe();
     };
-  }, [navigate]); // Only depend on navigate since it's needed for room transitions
+  }, []); // Empty dependency array since we want this effect to run only once on mount
 
   const handleCreateRoom = () => {
     if (!playerName.trim()) {

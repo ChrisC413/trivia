@@ -6,34 +6,74 @@ export class WebSocketService {
   private playerId: string | null = null;
   private eventHandlers: ((event: GameEvent) => void)[] = [];
   private isInitialized = false;
+  private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor() {
     this.initializeConnection();
   }
 
   private initializeConnection() {
-    if (this.isInitialized) {
+    if (this.socket?.connected) {
+      console.log('Socket already connected, no need to initialize');
       return;
     }
 
-    this.isInitialized = true;
     console.log('Initializing WebSocket connection...');
 
-    this.socket = io('http://localhost:5001');
+    // Clear any existing socket
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
+    // Create new socket with configuration
+    this.socket = io('http://localhost:5001', {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+      autoConnect: true
+    });
     
+    this.setupSocketHandlers();
+  }
+
+  private setupSocketHandlers() {
+    if (!this.socket) return;
+
     this.socket.on('connect', () => {
       console.log('Socket connected, socket.id:', this.socket?.id);
       this.playerId = this.socket?.id || null;
       
-      // Emit connected event to handlers immediately after socket connects
+      // Clear any reconnect timer
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+
+      // Emit connected event to handlers
       this.eventHandlers.forEach(handler => 
         handler({ type: 'connected' })
       );
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected, reason:', reason);
       this.playerId = null;
+
+      // Notify handlers of disconnection
+      this.eventHandlers.forEach(handler => 
+        handler({ type: 'disconnected' })
+      );
+
+      // Set up reconnection timer if not already set
+      if (!this.reconnectTimer) {
+        this.reconnectTimer = setTimeout(() => {
+          console.log('Attempting to reconnect...');
+          this.initializeConnection();
+        }, 2000);
+      }
     });
 
     this.socket.on('connect_error', (error) => {
@@ -46,16 +86,16 @@ export class WebSocketService {
       );
     });
 
-    // If socket is already connected when handlers are added, emit connected event
-    if (this.socket.connected) {
-      console.log('Socket already connected, emitting connected event');
-      this.playerId = this.socket.id || null;
-      this.eventHandlers.forEach(handler => 
-        handler({ type: 'connected' })
-      );
-    }
-
-    this.setupSocketHandlers();
+    // Set up game event handlers
+    ['roomCreated', 'playerJoined', 'gameStarted', 'playerScored', 
+     'themeGuessed', 'nextQuestion', 'gameFinished', 'playerLeft',
+     'roomDeleted', 'error'].forEach(eventType => {
+      this.socket?.on(eventType, (data) => {
+        this.eventHandlers.forEach(handler => 
+          handler({ type: eventType as GameEvent['type'], ...data })
+        );
+      });
+    });
   }
 
   private simulateEvents(type: 'create' | 'join', playerName?: string) {
@@ -155,35 +195,16 @@ export class WebSocketService {
     }, 2000);
   }
 
-  private setupSocketHandlers(): void {
-    if (!this.socket) return;
-
-    this.socket.on('error', (error: any) => {
-      console.error('WebSocket error:', error);
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'error', 
-          message: error.message || 'An error occurred' 
-        })
-      );
-    });
-
-    // Set up event handlers for game events
-    ['roomCreated', 'playerJoined', 'gameStarted', 'playerScored', 
-     'themeGuessed', 'nextQuestion', 'gameFinished', 'error'].forEach(eventType => {
-      this.socket?.on(eventType, (data) => {
-        this.eventHandlers.forEach(handler => handler({ type: eventType, ...data }));
-      });
-    });
-  }
-
   public onEvent(handler: (event: GameEvent) => void): () => void {
     this.eventHandlers.push(handler);
     
     // If already connected, emit the connected event immediately
     if (this.socket?.connected) {
-      console.log('Emitting connected event to new handler');
+      console.log('Emitting connected event to new handler - socket is already connected');
       handler({ type: 'connected' });
+    } else {
+      console.log('Socket not connected, ensuring connection is initialized...');
+      this.initializeConnection();
     }
 
     return () => {
@@ -246,14 +267,14 @@ export class WebSocketService {
   }
 
   public createRoom(gameId: string, playerName: string): void {
-    if (!this.socket) {
+    if (!this.socket?.connected) {
       throw new Error('Socket not connected');
     }
     this.socket.emit('createRoom', { gameId, playerName });
   }
 
   public joinRoom(roomId: string, playerName: string): void {
-    if (!this.socket) {
+    if (!this.socket?.connected) {
       throw new Error('Socket not connected');
     }
     this.socket.emit('joinRoom', { roomId, playerName });
@@ -284,12 +305,19 @@ export class WebSocketService {
     this.socket.emit('endGame', { roomId });
   }
 
-  public disconnect(): void {
+  public disconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.socket) {
+      this.socket.removeAllListeners();
       this.socket.disconnect();
       this.socket = null;
-      this.playerId = null;
     }
+    this.playerId = null;
+    this.isInitialized = false;
+    this.eventHandlers = [];
   }
 }
 
