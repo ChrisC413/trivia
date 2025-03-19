@@ -47,7 +47,7 @@ export const TriviaSetSelector: React.FC<TriviaSetSelectorProps> = ({
             </Typography>
           ) : (
             <Grid container spacing={2}>
-              {triviaSets.map((set) => (
+              {triviaSets.map(set => (
                 <Grid item xs={12} sm={6} key={set.id}>
                   <Card
                     sx={{
@@ -97,4 +97,4 @@ export const TriviaSetSelector: React.FC<TriviaSetSelectorProps> = ({
       </DialogActions>
     </Dialog>
   );
-}; 
+};

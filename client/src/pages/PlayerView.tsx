@@ -7,7 +7,7 @@ import {
   Paper,
   Grid,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import { Room } from '../types';
 import { websocketService } from '../services/websocket';
@@ -64,7 +64,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
   return (
     <Box>
       <GameStatus room={room} currentPlayerId={playerId} />
-      
+
       {room.gameState === 'waiting' && (
         <Paper sx={{ p: 3, mt: 2 }}>
           <Typography variant="h6" align="center">
@@ -91,7 +91,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
                   fullWidth
                   label="Your Answer"
                   value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
+                  onChange={e => setAnswer(e.target.value)}
                   disabled={isSubmitting}
                   sx={{ mb: 2 }}
                 />
@@ -116,7 +116,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
                 fullWidth
                 label="Theme Guess"
                 value={themeGuess}
-                onChange={(e) => setThemeGuess(e.target.value)}
+                onChange={e => setThemeGuess(e.target.value)}
                 disabled={isSubmitting}
                 sx={{ mb: 2 }}
               />
@@ -143,11 +143,11 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Typography variant="body1" align="center">
-              Winner: {room.players.reduce((a, b) => a.score > b.score ? a : b).name}
+              Winner: {room.players.reduce((a, b) => (a.score > b.score ? a : b)).name}
             </Typography>
           </Box>
         </Paper>
       )}
     </Box>
   );
-}; 
+};

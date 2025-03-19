@@ -31,22 +31,6 @@ app.use(express.json());
 // Store active game rooms
 const gameRooms = new Map();
 
-// Sample trivia games (in a real app, this would come from a database)
-const sampleGames = [
-  {
-    id: '1',
-    name: 'Movie Quotes',
-    theme: 'The Matrix',
-    questions: [
-      { question: 'What is the first thing Neo says to Morpheus?', answer: 'Are you Morpheus?' },
-      { question: 'What does the Oracle tell Neo about the vase?', answer: 'Don\'t worry about the vase' },
-      { question: 'What does Trinity say about the name Neo?', answer: 'The One' },
-      { question: 'What does Morpheus say about the Matrix?', answer: 'Welcome to the real world' },
-      { question: 'What does Neo say about the Matrix?', answer: 'I know kung fu' }
-    ]
-  }
-];
-
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('New client connected');
@@ -58,6 +42,10 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Join the room socket
+    socket.join(roomId);
+
+    // Send room data
     socket.emit('roomData', {
       room: {
         id: room.id,
@@ -90,7 +78,7 @@ io.on('connection', (socket) => {
       }]]),
       gameState: 'waiting',
       currentQuestion: 0,
-      game: sampleGames.find(g => g.id === gameId) || sampleGames[0],
+      game: null, // Game will be set when starting
       themeGuesses: new Map()
     });
     socket.join(roomId);
@@ -102,7 +90,7 @@ io.on('connection', (socket) => {
         players: Array.from(gameRooms.get(roomId).players.values()),
         gameState: 'waiting',
         currentQuestion: 0,
-        game: sampleGames.find(g => g.id === gameId) || sampleGames[0]
+        game: null
       }
     });
   });
@@ -225,4 +213,6 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});
+
+module.exports = { app, server, io }; 

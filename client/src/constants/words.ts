@@ -8,7 +8,7 @@ export const ADJECTIVES = [
   'Grumpy',
   'Dizzy',
   'Wobbly',
-  'Sparkly'
+  'Sparkly',
 ];
 
 export const FUNNY_WORDS = [
@@ -21,7 +21,7 @@ export const FUNNY_WORDS = [
   'Armpit',
   'Undies',
   'Toot',
-  'Barf'
+  'Barf',
 ];
 
 export const NOUNS = [
@@ -34,5 +34,5 @@ export const NOUNS = [
   'Wizard',
   'Robot',
   'Dinosaur',
-  'Llama'
-]; 
+  'Llama',
+];

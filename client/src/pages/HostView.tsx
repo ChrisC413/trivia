@@ -46,7 +46,7 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
           case 'playerJoined':
             setRoom(prevRoom => ({
               ...prevRoom,
-              players: event.players
+              players: event.players,
             }));
             break;
           case 'gameStarted':
@@ -54,7 +54,7 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
               ...prevRoom,
               gameState: 'playing',
               currentQuestion: event.questionNumber,
-              questionStartTime: event.startTime
+              questionStartTime: event.startTime,
             }));
             break;
           case 'playerScored':
@@ -112,26 +112,28 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
               <Typography variant="h4" gutterBottom>
                 Game Room: {room.id}
               </Typography>
-              
+
               <Box sx={{ mt: 3 }}>
                 <Typography variant="h6" gutterBottom>
                   Share with Players:
                 </Typography>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 1,
-                  mb: 2,
-                  p: 2,
-                  bgcolor: 'grey.100',
-                  borderRadius: 1
-                }}>
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    mb: 2,
+                    p: 2,
+                    bgcolor: 'grey.100',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="body1"
+                    sx={{
                       flexGrow: 1,
                       fontFamily: 'monospace',
-                      wordBreak: 'break-all'
+                      wordBreak: 'break-all',
                     }}
                   >
                     {gameUrl}
@@ -142,17 +144,19 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
                     </IconButton>
                   </Tooltip>
                 </Box>
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'center', 
-                  mb: 2,
-                  p: 2,
-                  bgcolor: 'grey.100',
-                  borderRadius: 1
-                }}>
-                  <QRCode 
-                    value={gameUrl} 
-                    size={200} 
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    mb: 2,
+                    p: 2,
+                    bgcolor: 'grey.100',
+                    borderRadius: 1,
+                  }}
+                >
+                  <QRCode
+                    value={gameUrl}
+                    size={200}
                     level="H"
                     includeMargin={true}
                     style={{ background: 'white', padding: '1rem' }}
@@ -196,12 +200,9 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
                 Players
               </Typography>
               <List>
-                {room.players.map((player) => (
+                {room.players.map(player => (
                   <ListItem key={player.id}>
-                    <ListItemText
-                      primary={player.name}
-                      secondary={`Score: ${player.score}`}
-                    />
+                    <ListItemText primary={player.name} secondary={`Score: ${player.score}`} />
                   </ListItem>
                 ))}
               </List>
@@ -218,4 +219,4 @@ export const HostView: React.FC<HostViewProps> = ({ room: initialRoom, onError }
       />
     </Container>
   );
-}; 
+};

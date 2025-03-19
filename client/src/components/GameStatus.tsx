@@ -25,7 +25,7 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
     const timer = setInterval(() => {
       const elapsed = (Date.now() - room.questionStartTime!) / 1000;
       setTimeElapsed(elapsed);
-      
+
       // Calculate current possible score
       const scoreDeduction = Math.floor(elapsed / 5) * (room.maxScore * 0.1);
       const newScore = Math.max(0, room.maxScore - scoreDeduction);
@@ -63,7 +63,7 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
         Leaderboard
       </Typography>
       <List dense>
-        {sortedPlayers.map((player) => (
+        {sortedPlayers.map(player => (
           <ListItem
             key={player.id}
             sx={{
@@ -73,7 +73,14 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
           >
             <ListItemText
               primary={
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mb: 1,
+                  }}
+                >
                   <Typography>
                     {player.name}
                     {player.id === room.host && ' (Host)'}
@@ -95,4 +102,4 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
       </List>
     </Paper>
   );
-}; 
+};

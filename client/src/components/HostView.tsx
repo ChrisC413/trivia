@@ -42,10 +42,10 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
               Answer: {currentQuestion.answer}
             </Typography>
             <Box sx={{ mt: 2 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={progress * 100} 
-                color={progress > 0.8 ? "error" : "primary"}
+              <LinearProgress
+                variant="determinate"
+                value={progress * 100}
+                color={progress > 0.8 ? 'error' : 'primary'}
                 sx={{ height: 8, borderRadius: 4 }}
               />
               <Typography variant="caption" color="text.secondary">
@@ -53,19 +53,15 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
               </Typography>
             </Box>
             <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
-              <Button 
-                variant="contained" 
-                color="primary" 
+              <Button
+                variant="contained"
+                color="primary"
                 onClick={onNextQuestion}
                 disabled={room.currentQuestion === room.game.questions.length}
               >
                 Next Question
               </Button>
-              <Button 
-                variant="outlined" 
-                color="error" 
-                onClick={onEndGame}
-              >
+              <Button variant="outlined" color="error" onClick={onEndGame}>
                 End Game
               </Button>
             </Box>
@@ -79,21 +75,17 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
               Players
             </Typography>
             <List>
-              {room.players.map((player) => (
+              {room.players.map(player => (
                 <ListItem key={player.id}>
                   <ListItemText
                     primary={player.name}
                     secondary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip 
-                          label={`Score: ${player.score}`} 
-                          color="primary" 
-                          size="small"
-                        />
+                        <Chip label={`Score: ${player.score}`} color="primary" size="small" />
                         {player.lastAnswerTime && (
-                          <Chip 
-                            label={player.lastAnswerCorrect ? 'Correct' : 'Incorrect'} 
-                            color={player.lastAnswerCorrect ? 'success' : 'error'} 
+                          <Chip
+                            label={player.lastAnswerCorrect ? 'Correct' : 'Incorrect'}
+                            color={player.lastAnswerCorrect ? 'success' : 'error'}
                             size="small"
                           />
                         )}
@@ -115,19 +107,17 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
             <List>
               {room.players
                 .filter(p => p.themeGuess)
-                .map((player) => (
+                .map(player => (
                   <ListItem key={player.id}>
                     <ListItemText
                       primary={player.name}
                       secondary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2">
-                            Guess: {player.themeGuess}
-                          </Typography>
+                          <Typography variant="body2">Guess: {player.themeGuess}</Typography>
                           {player.themeGuessCorrect !== undefined && (
-                            <Chip 
-                              label={player.themeGuessCorrect ? 'Correct' : 'Incorrect'} 
-                              color={player.themeGuessCorrect ? 'success' : 'error'} 
+                            <Chip
+                              label={player.themeGuessCorrect ? 'Correct' : 'Incorrect'}
+                              color={player.themeGuessCorrect ? 'success' : 'error'}
                               size="small"
                             />
                           )}
@@ -142,4 +132,4 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
       </Grid>
     </Box>
   );
-}; 
+};

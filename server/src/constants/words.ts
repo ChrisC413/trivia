@@ -37,18 +37,14 @@ const NOUNS = [
   'Llama'
 ];
 
-function getRandomElement(array) {
+function getRandomElement<T>(array: Array<T>): T {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-function generateRoomId() {
+export function generateRoomId() {
   const adjective = getRandomElement(ADJECTIVES);
   const funnyWord = getRandomElement(FUNNY_WORDS);
   const noun = getRandomElement(NOUNS);
   
   return `${adjective}${funnyWord}${noun}`;
 }
-
-module.exports = {
-  generateRoomId
-}; 

@@ -8,6 +8,6 @@ export function generateRoomId(): string {
   const adjective = getRandomElement(ADJECTIVES);
   const funnyWord = getRandomElement(FUNNY_WORDS);
   const noun = getRandomElement(NOUNS);
-  
+
   return `${adjective}${funnyWord}${noun}`;
-} 
+}

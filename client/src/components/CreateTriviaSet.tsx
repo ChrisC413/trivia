@@ -30,9 +30,7 @@ interface CreateTriviaSetProps {
 export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose, onSubmit }) => {
   const [name, setName] = useState('');
   const [theme, setTheme] = useState('');
-  const [questions, setQuestions] = useState<Question[]>([
-    { question: '', answer: '' }
-  ]);
+  const [questions, setQuestions] = useState<Question[]>([{ question: '', answer: '' }]);
 
   useEffect(() => {
     if (open) {
@@ -62,7 +60,7 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
     onSubmit({
       name,
       theme,
-      questions: questions.filter(q => q.question && q.answer)
+      questions: questions.filter(q => q.question && q.answer),
     });
 
     // Reset form
@@ -86,7 +84,7 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
               fullWidth
               label="Trivia Set Name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               margin="normal"
               required
             />
@@ -98,15 +96,15 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
             fullWidth
             label="Theme"
             value={theme}
-            onChange={(e) => setTheme(e.target.value)}
+            onChange={e => setTheme(e.target.value)}
             margin="normal"
             required
           />
-          
+
           <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
             Questions
           </Typography>
-          
+
           {questions.map((q, index) => (
             <Paper key={index} sx={{ p: 2, mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
@@ -115,7 +113,7 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
                     fullWidth
                     label={`Question ${index + 1}`}
                     value={q.question}
-                    onChange={(e) => handleQuestionChange(index, 'question', e.target.value)}
+                    onChange={e => handleQuestionChange(index, 'question', e.target.value)}
                     margin="normal"
                     required
                   />
@@ -123,7 +121,7 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
                     fullWidth
                     label={`Answer ${index + 1}`}
                     value={q.answer}
-                    onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
+                    onChange={e => handleQuestionChange(index, 'answer', e.target.value)}
                     margin="normal"
                     required
                   />
@@ -141,11 +139,7 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
             </Paper>
           ))}
 
-          <Button
-            startIcon={<AddIcon />}
-            onClick={handleAddQuestion}
-            sx={{ mt: 2 }}
-          >
+          <Button startIcon={<AddIcon />} onClick={handleAddQuestion} sx={{ mt: 2 }}>
             Add Question
           </Button>
         </Box>
@@ -163,4 +157,4 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
       </DialogActions>
     </Dialog>
   );
-}; 
+};

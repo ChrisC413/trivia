@@ -33,9 +33,9 @@ export class WebSocketService {
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       timeout: 10000,
-      autoConnect: true
+      autoConnect: true,
     });
-    
+
     this.setupSocketHandlers();
   }
 
@@ -45,7 +45,7 @@ export class WebSocketService {
     this.socket.on('connect', () => {
       console.log('Socket connected, socket.id:', this.socket?.id);
       this.playerId = this.socket?.id || null;
-      
+
       // Clear any reconnect timer
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
@@ -53,19 +53,15 @@ export class WebSocketService {
       }
 
       // Emit connected event to handlers
-      this.eventHandlers.forEach(handler => 
-        handler({ type: 'connected' })
-      );
+      this.eventHandlers.forEach(handler => handler({ type: 'connected' }));
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', reason => {
       console.log('Socket disconnected, reason:', reason);
       this.playerId = null;
 
       // Notify handlers of disconnection
-      this.eventHandlers.forEach(handler => 
-        handler({ type: 'disconnected' })
-      );
+      this.eventHandlers.forEach(handler => handler({ type: 'disconnected' }));
 
       // Set up reconnection timer if not already set
       if (!this.reconnectTimer) {
@@ -76,22 +72,31 @@ export class WebSocketService {
       }
     });
 
-    this.socket.on('connect_error', (error) => {
+    this.socket.on('connect_error', error => {
       console.error('Socket connection error:', error);
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'error', 
-          message: 'Failed to connect to server' 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'error',
+          message: 'Failed to connect to server',
         })
       );
     });
 
     // Set up game event handlers
-    ['roomCreated', 'playerJoined', 'gameStarted', 'playerScored', 
-     'themeGuessed', 'nextQuestion', 'gameFinished', 'playerLeft',
-     'roomDeleted', 'error'].forEach(eventType => {
-      this.socket?.on(eventType, (data) => {
-        this.eventHandlers.forEach(handler => 
+    [
+      'roomCreated',
+      'playerJoined',
+      'gameStarted',
+      'playerScored',
+      'themeGuessed',
+      'nextQuestion',
+      'gameFinished',
+      'playerLeft',
+      'roomDeleted',
+      'error',
+    ].forEach(eventType => {
+      this.socket?.on(eventType, data => {
+        this.eventHandlers.forEach(handler =>
           handler({ type: eventType as GameEvent['type'], ...data })
         );
       });
@@ -101,22 +106,22 @@ export class WebSocketService {
   private simulateEvents(type: 'create' | 'join', playerName?: string) {
     if (type === 'create') {
       setTimeout(() => {
-        this.eventHandlers.forEach(handler => 
-          handler({ 
-            type: 'roomCreated', 
-            roomId: 'test-room'
+        this.eventHandlers.forEach(handler =>
+          handler({
+            type: 'roomCreated',
+            roomId: 'test-room',
           })
         );
       }, 100);
     } else if (type === 'join') {
       setTimeout(() => {
-        this.eventHandlers.forEach(handler => 
-          handler({ 
-            type: 'playerJoined', 
+        this.eventHandlers.forEach(handler =>
+          handler({
+            type: 'playerJoined',
             players: [
               { id: 'player1', name: playerName || 'Test Player', score: 0, isHost: false },
-              { id: 'player2', name: 'Another Player', score: 0, isHost: false }
-            ]
+              { id: 'player2', name: 'Another Player', score: 0, isHost: false },
+            ],
           })
         );
       }, 200);
@@ -126,70 +131,70 @@ export class WebSocketService {
   private simulateGameEvents() {
     // Simulate game start
     setTimeout(() => {
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'gameStarted', 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'gameStarted',
           question: {
             question: 'What is the first thing Neo says to Morpheus?',
-            answer: 'Are you Morpheus?'
+            answer: 'Are you Morpheus?',
           },
           questionNumber: 1,
-          startTime: Date.now()
+          startTime: Date.now(),
         })
       );
     }, 500);
 
     // Simulate player scoring
     setTimeout(() => {
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'playerScored', 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'playerScored',
           playerId: 'player1',
           playerName: 'Test Player',
           score: 100,
-          answerTime: Date.now()
+          answerTime: Date.now(),
         })
       );
     }, 500);
 
     // Simulate theme guessing
     setTimeout(() => {
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'themeGuessed', 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'themeGuessed',
           playerId: 'player2',
           playerName: 'Another Player',
-          score: 50
+          score: 50,
         })
       );
     }, 1000);
 
     // Simulate next question
     setTimeout(() => {
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'nextQuestion', 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'nextQuestion',
           question: {
             question: 'What does the Oracle tell Neo about the vase?',
-            answer: 'Don\'t worry about the vase'
+            answer: "Don't worry about the vase",
           },
           questionNumber: 2,
-          startTime: Date.now()
+          startTime: Date.now(),
         })
       );
     }, 1500);
 
     // Simulate game finish
     setTimeout(() => {
-      this.eventHandlers.forEach(handler => 
-        handler({ 
-          type: 'gameFinished', 
+      this.eventHandlers.forEach(handler =>
+        handler({
+          type: 'gameFinished',
           winner: {
             id: 'player1',
             name: 'Test Player',
             score: 100,
-            isHost: false
-          }
+            isHost: false,
+          },
         })
       );
     }, 2000);
@@ -197,7 +202,7 @@ export class WebSocketService {
 
   public onEvent(handler: (event: GameEvent) => void): () => void {
     this.eventHandlers.push(handler);
-    
+
     // If already connected, emit the connected event immediately
     if (this.socket?.connected) {
       console.log('Emitting connected event to new handler - socket is already connected');
@@ -216,6 +221,10 @@ export class WebSocketService {
   }
 
   public on(event: string, callback: (...args: any[]) => void) {
+    if (!this.socket?.connected) {
+      console.log('Socket not connected, initializing connection...');
+      this.initializeConnection();
+    }
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
@@ -224,45 +233,71 @@ export class WebSocketService {
 
   public off(event: string, callback: (...args: any[]) => void) {
     if (!this.socket) {
-      throw new Error('Socket not connected');
+      console.warn('Socket not connected, cannot remove listener');
+      return;
     }
     this.socket.off(event, callback);
   }
 
   public getPlayerId(): string | null {
+    if (!this.socket?.connected) {
+      this.initializeConnection();
+    }
     return this.playerId;
   }
 
   public getRoom(roomId: string): Promise<Room> {
     return new Promise((resolve, reject) => {
+      if (!this.socket?.connected) {
+        console.log('Socket not connected, initializing connection...');
+        this.initializeConnection();
+      }
+
       if (!this.socket) {
         reject(new Error('Socket not connected'));
         return;
       }
 
-      this.socket.emit('getRoom', { roomId });
-      
       const handleRoomData = (data: { room: Room }) => {
+        console.log('Received room data:', data);
+        if (!data.room) {
+          console.error('Invalid room data received:', data);
+          reject(new Error('Invalid room data received'));
+          return;
+        }
+        // Remove listeners before resolving
         this.socket?.off('roomData', handleRoomData);
         this.socket?.off('error', handleError);
+        // Resolve immediately after receiving valid data
         resolve(data.room);
       };
 
       const handleError = (error: { message: string }) => {
+        console.error('Received error in getRoom:', error);
+        // Remove listeners before rejecting
         this.socket?.off('roomData', handleRoomData);
         this.socket?.off('error', handleError);
         reject(new Error(error.message));
       };
 
+      // Set up listeners
       this.socket.on('roomData', handleRoomData);
       this.socket.on('error', handleError);
 
+      console.log('Emitting getRoom event for roomId:', roomId);
+      this.socket.emit('getRoom', { roomId });
+
       // Set a timeout to prevent hanging
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
+        console.log('getRoom request timed out');
+        // Remove listeners before rejecting
         this.socket?.off('roomData', handleRoomData);
         this.socket?.off('error', handleError);
         reject(new Error('Request timed out'));
-      }, 5000);
+      }, 10000);
+
+      // Clean up timeout if promise resolves or rejects
+      return () => clearTimeout(timeoutId);
     });
   }
 
@@ -321,4 +356,4 @@ export class WebSocketService {
   }
 }
 
-export const websocketService = new WebSocketService(); 
+export const websocketService = new WebSocketService();

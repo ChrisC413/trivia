@@ -36,15 +36,15 @@ export const errorService = {
   clearLocalCache() {
     // Clear localStorage
     localStorage.clear();
-    
+
     // Clear sessionStorage
     sessionStorage.clear();
-    
+
     // Clear any cached data in memory
     if (window.caches) {
       caches.keys().then(keys => {
         keys.forEach(key => caches.delete(key));
       });
     }
-  }
-}; 
+  },
+};

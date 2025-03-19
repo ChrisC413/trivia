@@ -46,7 +46,7 @@ export const triviaService = {
       createdAt: new Date().toISOString(),
       rating: 0,
     };
-    
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...existingSets, newSet]));
     return newSet;
   },
@@ -63,9 +63,7 @@ export const triviaService = {
 
   updateRating(id: string, rating: number): void {
     const sets = this.getTriviaSets();
-    const updatedSets = sets.map(set => 
-      set.id === id ? { ...set, rating } : set
-    );
+    const updatedSets = sets.map(set => (set.id === id ? { ...set, rating } : set));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSets));
   },
 
@@ -77,4 +75,4 @@ export const triviaService = {
       questions: triviaSet.questions,
     };
   },
-}; 
+};

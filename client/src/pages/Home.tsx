@@ -169,7 +169,11 @@ export const Home: React.FC = () => {
     }
   };
 
-  const handleCreateTriviaSet = async (data: { name: string; theme: string; questions: { question: string; answer: string }[] }) => {
+  const handleCreateTriviaSet = async (data: {
+    name: string;
+    theme: string;
+    questions: { question: string; answer: string }[];
+  }) => {
     try {
       await triviaService.saveTriviaSet(data);
       setShowCreateTriviaSet(false);
@@ -201,7 +205,7 @@ export const Home: React.FC = () => {
                   fullWidth
                   label="Your Name"
                   value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
+                  onChange={e => setPlayerName(e.target.value)}
                   sx={{ mb: 2 }}
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
@@ -227,8 +231,8 @@ export const Home: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Dialog 
-          open={showCreateDialog} 
+        <Dialog
+          open={showCreateDialog}
           onClose={() => {
             setShowCreateDialog(false);
             setSelectedGame(null);
@@ -239,7 +243,7 @@ export const Home: React.FC = () => {
         >
           <DialogTitle>Select Trivia Set</DialogTitle>
           <DialogContent>
-            <TriviaSetSelector 
+            <TriviaSetSelector
               open={showCreateDialog}
               onClose={() => {
                 setShowCreateDialog(false);
@@ -250,33 +254,32 @@ export const Home: React.FC = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => {
-              setShowCreateDialog(false);
-              setSelectedGame(null);
-              setIsCreatingRoom(false);
-            }}>
+            <Button
+              onClick={() => {
+                setShowCreateDialog(false);
+                setSelectedGame(null);
+                setIsCreatingRoom(false);
+              }}
+            >
               Cancel
             </Button>
           </DialogActions>
         </Dialog>
 
-        <Dialog 
-          open={showJoinDialog} 
-          onClose={() => setShowJoinDialog(false)}
-        >
+        <Dialog open={showJoinDialog} onClose={() => setShowJoinDialog(false)}>
           <DialogTitle>Join Room</DialogTitle>
           <DialogContent>
             <TextField
               fullWidth
               label="Room ID"
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
+              onChange={e => setRoomId(e.target.value)}
               sx={{ mt: 2 }}
             />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setShowJoinDialog(false)}>Cancel</Button>
-            <Button 
+            <Button
               onClick={handleJoinRoom}
               variant="contained"
               disabled={!roomId.trim() || !playerName.trim() || isJoiningRoom}
@@ -304,4 +307,4 @@ export const Home: React.FC = () => {
       </Box>
     </Container>
   );
-}; 
+};
