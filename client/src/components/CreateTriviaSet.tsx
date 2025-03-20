@@ -10,11 +10,10 @@ import {
   IconButton,
   Typography,
   Paper,
-  Rating,
-  Stack,
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { triviaService, TriviaSet } from '../services/triviaService';
+import { triviaService } from '../services/triviaService';
+import { TriviaSet } from '../../../shared/types';
 
 interface Question {
   question: string;

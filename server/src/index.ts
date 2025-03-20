@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import { generateRoomId } from './constants/words';
 import { GameRoom, Player, RoomResponse, Game } from './types';
+import triviaRoutes from './routes/trivia';
 
 const app = express();
 const server = createServer(app);
@@ -30,6 +31,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Routes
+app.use('/api/trivia', triviaRoutes);
 
 // Convert GameRoom to RoomResponse
 const getRoomResponse = (room: GameRoom): RoomResponse => ({

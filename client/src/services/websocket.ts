@@ -5,7 +5,6 @@ export class WebSocketService {
   private socket: Socket | null = null;
   private playerId: string | null = null;
   private eventHandlers: ((event: GameEvent) => void)[] = [];
-  private isInitialized = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor() {
@@ -20,12 +19,6 @@ export class WebSocketService {
 
     console.log('Initializing WebSocket connection...');
 
-    // Clear any existing socket
-    if (this.socket) {
-      this.socket.removeAllListeners();
-      this.socket.disconnect();
-      this.socket = null;
-    }
 
     // Create new socket with configuration
     this.socket = io('http://localhost:5001', {
@@ -101,103 +94,6 @@ export class WebSocketService {
         );
       });
     });
-  }
-
-  private simulateEvents(type: 'create' | 'join', playerName?: string) {
-    if (type === 'create') {
-      setTimeout(() => {
-        this.eventHandlers.forEach(handler =>
-          handler({
-            type: 'roomCreated',
-            roomId: 'test-room',
-          })
-        );
-      }, 100);
-    } else if (type === 'join') {
-      setTimeout(() => {
-        this.eventHandlers.forEach(handler =>
-          handler({
-            type: 'playerJoined',
-            players: [
-              { id: 'player1', name: playerName || 'Test Player', score: 0, isHost: false },
-              { id: 'player2', name: 'Another Player', score: 0, isHost: false },
-            ],
-          })
-        );
-      }, 200);
-    }
-  }
-
-  private simulateGameEvents() {
-    // Simulate game start
-    setTimeout(() => {
-      this.eventHandlers.forEach(handler =>
-        handler({
-          type: 'gameStarted',
-          question: {
-            question: 'What is the first thing Neo says to Morpheus?',
-            answer: 'Are you Morpheus?',
-          },
-          questionNumber: 1,
-          startTime: Date.now(),
-        })
-      );
-    }, 500);
-
-    // Simulate player scoring
-    setTimeout(() => {
-      this.eventHandlers.forEach(handler =>
-        handler({
-          type: 'playerScored',
-          playerId: 'player1',
-          playerName: 'Test Player',
-          score: 100,
-          answerTime: Date.now(),
-        })
-      );
-    }, 500);
-
-    // Simulate theme guessing
-    setTimeout(() => {
-      this.eventHandlers.forEach(handler =>
-        handler({
-          type: 'themeGuessed',
-          playerId: 'player2',
-          playerName: 'Another Player',
-          score: 50,
-        })
-      );
-    }, 1000);
-
-    // Simulate next question
-    setTimeout(() => {
-      this.eventHandlers.forEach(handler =>
-        handler({
-          type: 'nextQuestion',
-          question: {
-            question: 'What does the Oracle tell Neo about the vase?',
-            answer: "Don't worry about the vase",
-          },
-          questionNumber: 2,
-          startTime: Date.now(),
-        })
-      );
-    }, 1500);
-
-    // Simulate game finish
-    setTimeout(() => {
-      this.eventHandlers.forEach(handler =>
-        handler({
-          type: 'gameFinished',
-          winner: {
-            id: 'player1',
-            name: 'Test Player',
-            score: 100,
-            isHost: false,
-          },
-        })
-      );
-    }, 2000);
   }
 
   public onEvent(handler: (event: GameEvent) => void): () => void {
@@ -351,7 +247,6 @@ export class WebSocketService {
       this.socket = null;
     }
     this.playerId = null;
-    this.isInitialized = false;
     this.eventHandlers = [];
   }
 }

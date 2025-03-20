@@ -13,7 +13,8 @@ import {
   Grid,
   Chip,
 } from '@mui/material';
-import { triviaService, TriviaSet } from '../services/triviaService';
+import { triviaService } from '../services/triviaService';
+import { TriviaSet } from '../../../shared/types';
 
 interface TriviaSetSelectorProps {
   open: boolean;

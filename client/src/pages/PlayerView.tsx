@@ -6,12 +6,10 @@ import {
   Button,
   Paper,
   Grid,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import { Room } from '../types';
 import { websocketService } from '../services/websocket';
-import { errorService } from '../services/errorService';
 import { GameStatus } from '../components/GameStatus';
 
 interface PlayerViewProps {

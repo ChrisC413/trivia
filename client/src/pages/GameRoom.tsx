@@ -7,14 +7,6 @@ import { HostView } from './HostView';
 import { PlayerView } from './PlayerView';
 import { PlayerNamePrompt } from '../components/PlayerNamePrompt';
 
-interface GameEvent {
-  roomId: string;
-  room: Room;
-  playerId?: string;
-  type?: string;
-  message?: string;
-}
-
 export const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const [room, setRoom] = useState<Room | null>(null);
@@ -110,6 +102,7 @@ export const GameRoom: React.FC = () => {
     // Get initial room state
     const initializeRoom = async () => {
       try {
+        console.log('Initializing room:', roomId);
         await websocketService.getRoom(roomId);
       } catch (err) {
         console.error('Failed to get room data:', err);

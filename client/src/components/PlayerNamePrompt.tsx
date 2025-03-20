@@ -29,7 +29,6 @@ export const PlayerNamePrompt: React.FC<PlayerNamePromptProps> = ({ open, onSubm
   return (
     <Dialog
       open={open}
-      onClose={() => {}}
       disableEscapeKeyDown
       sx={{
         '& .MuiBackdrop-root': {

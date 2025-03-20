@@ -1,5 +1,5 @@
 import { Game } from '../types';
-
+import { TriviaSet } from '../../../shared/types';
 // In a real application, this would be an API call to your backend
 const STORAGE_KEY = 'trivia_sets';
 
@@ -21,17 +21,7 @@ const RANDOM_NAMES = [
   'Quiz Quest Adventure',
 ];
 
-export interface TriviaSet {
-  id: string;
-  name: string;
-  theme: string;
-  questions: Array<{
-    question: string;
-    answer: string;
-  }>;
-  createdAt: string;
-  rating: number;
-}
+
 
 export const triviaService = {
   getRandomName(): string {
