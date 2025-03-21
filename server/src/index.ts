@@ -12,6 +12,9 @@ const server = createServer(app);
 // Store active game rooms
 const gameRooms = new Map<string, GameRoom>();
 
+// Store socket to player ID mapping
+const socketToPlayer = new Map<string, string>();
+
 // Socket.IO server setup
 const io = new Server(server, {
   cors: {
@@ -45,9 +48,21 @@ const getRoomResponse = (room: GameRoom): RoomResponse => ({
   game: room.game
 });
 
+
 // Socket.IO connection handling
 io.on('connection', (socket: Socket) => {
   console.log('New client connected');
+
+  // Store player ID mapping when socket connects
+  const playerId = socket.handshake.auth.playerId;
+  if (playerId) {
+    socketToPlayer.set(socket.id, playerId);
+    console.log('Mapped socket', socket.id, 'to player', playerId);
+  }
+
+  socket.on('disconnect', () => {
+    socketToPlayer.delete(socket.id);
+  });
 
   socket.on('getRoom', ({ roomId }: { roomId: string }) => {
     console.log('Received getRoom request for roomId:', roomId);
@@ -66,13 +81,10 @@ io.on('connection', (socket: Socket) => {
     const roomResponse = getRoomResponse(room);
     console.log('Sending room data:', JSON.stringify(roomResponse, null, 2));
     
-    // Use callback to ensure message is sent
-    socket.emit('roomData', { room: roomResponse }, (acknowledgement: any) => {
-      console.log('Room data sent, acknowledgement:', acknowledgement);
-    });
+    socket.emit('roomData', { room: roomResponse });
   });
 
-  socket.on('createRoom', ({ gameId, playerName }: { gameId: string; playerName: string }) => {
+  socket.on('createRoom', ({ gameId, playerName, playerId }: { gameId: string; playerName: string; playerId: string }) => {
     let roomId: string;
     do {
       roomId = generateRoomId();
@@ -82,9 +94,9 @@ io.on('connection', (socket: Socket) => {
     
     const newRoom: GameRoom = {
       id: roomId,
-      host: socket.id,
-      players: new Map([[socket.id, {
-        id: socket.id,
+      host: playerId,
+      players: new Map([[playerId, {
+        id: playerId,
         name: playerName,
         score: 0,
         isHost: true
@@ -103,22 +115,31 @@ io.on('connection', (socket: Socket) => {
     });
   });
 
-  socket.on('joinRoom', ({ roomId, playerName }: { roomId: string; playerName: string }) => {
+  socket.on('joinRoom', ({ roomId, playerName, playerId }: { roomId: string; playerName: string; playerId: string }) => {
     const room = gameRooms.get(roomId);
     if (!room) {
       socket.emit('error', { message: 'Room not found' });
       return;
     }
 
+    // Check if player is rejoining
+    const existingPlayer = room.players.get(playerId);
+    if (existingPlayer) {
+      // Update socket mapping and rejoin room
+      socket.join(roomId);
+      socket.emit('roomData', { room: getRoomResponse(room) });
+      return;
+    }
+
     const newPlayer: Player = {
-      id: socket.id,
+      id: playerId,
       name: playerName,
       score: 0,
       isHost: false
     };
 
     socket.join(roomId);
-    room.players.set(socket.id, newPlayer);
+    room.players.set(playerId, newPlayer);
 
     io.to(roomId).emit('playerJoined', {
       players: Array.from(room.players.values())

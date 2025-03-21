@@ -1,13 +1,17 @@
-import { GameEvent, Room } from '../types';
+import { GameEvent } from '../types';
+import { Room } from '../shared-types';
 import { io, Socket } from 'socket.io-client';
+import { getOrCreatePlayerId } from '../utils/playerUtils';
 
 export class WebSocketService {
   private socket: Socket | null = null;
-  private playerId: string | null = null;
+  private playerId: string;
   private eventHandlers: ((event: GameEvent) => void)[] = [];
+  private isInitialized = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
 
   constructor() {
+    this.playerId = getOrCreatePlayerId();
     this.initializeConnection();
   }
 
@@ -19,6 +23,12 @@ export class WebSocketService {
 
     console.log('Initializing WebSocket connection...');
 
+    // Clear any existing socket
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
+    }
 
     // Create new socket with configuration
     this.socket = io('http://localhost:5001', {
@@ -27,8 +37,11 @@ export class WebSocketService {
       reconnectionDelay: 1000,
       timeout: 10000,
       autoConnect: true,
+      auth: {
+        playerId: this.playerId
+      }
     });
-
+    
     this.setupSocketHandlers();
   }
 
@@ -36,9 +49,8 @@ export class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Socket connected, socket.id:', this.socket?.id);
-      this.playerId = this.socket?.id || null;
-
+      console.log('Socket connected, playerId:', this.playerId);
+      
       // Clear any reconnect timer
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
@@ -46,12 +58,13 @@ export class WebSocketService {
       }
 
       // Emit connected event to handlers
-      this.eventHandlers.forEach(handler => handler({ type: 'connected' }));
+      this.eventHandlers.forEach(handler => 
+        handler({ type: 'connected' })
+      );
     });
 
     this.socket.on('disconnect', reason => {
       console.log('Socket disconnected, reason:', reason);
-      this.playerId = null;
 
       // Notify handlers of disconnection
       this.eventHandlers.forEach(handler => handler({ type: 'disconnected' }));
@@ -135,10 +148,7 @@ export class WebSocketService {
     this.socket.off(event, callback);
   }
 
-  public getPlayerId(): string | null {
-    if (!this.socket?.connected) {
-      this.initializeConnection();
-    }
+  public getPlayerId(): string {
     return this.playerId;
   }
 
@@ -201,14 +211,22 @@ export class WebSocketService {
     if (!this.socket?.connected) {
       throw new Error('Socket not connected');
     }
-    this.socket.emit('createRoom', { gameId, playerName });
+    this.socket.emit('createRoom', { 
+      gameId, 
+      playerName,
+      playerId: this.playerId 
+    });
   }
 
   public joinRoom(roomId: string, playerName: string): void {
     if (!this.socket?.connected) {
       throw new Error('Socket not connected');
     }
-    this.socket.emit('joinRoom', { roomId, playerName });
+    this.socket.emit('joinRoom', { 
+      roomId, 
+      playerName,
+      playerId: this.playerId 
+    });
   }
 
   public startGame(roomId: string, gameId: string): void {
@@ -246,7 +264,6 @@ export class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
-    this.playerId = null;
     this.eventHandlers = [];
   }
 }

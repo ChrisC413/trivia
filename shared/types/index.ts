@@ -66,3 +66,37 @@ export interface TriviaSet {
     createdAt: string;
     rating: number;
   }
+
+
+export interface Room {
+    id: string;
+    host: string;
+    players: PublicPlayer[];
+    gameState: 'waiting' | 'playing' | 'finished';
+    currentQuestion: number;
+    game: Game;
+    themeGuesses: Record<string, string>;
+    questionStartTime?: number;
+    maxScore: number;
+    timeLimit: number;
+  }
+
+  export interface Game {
+    id: string;
+    name: string;
+    theme: string;
+    questions: Question[];
+  }
+
+  export interface Question {
+    question: string;
+    answer: string;
+  }
+
+  export interface PublicPlayer {
+    id?: string;
+    name: string;
+    score: number;
+  }
+
+  

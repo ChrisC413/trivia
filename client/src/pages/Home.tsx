@@ -19,8 +19,9 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { websocketService } from '../services/websocket';
 import { errorService } from '../services/errorService';
 import { CreateTriviaSet } from '../components/CreateTriviaSet';
-import { TriviaSetSelector } from '../components/TriviaSetSelector';
-import { Game, GameEvent } from '../types';
+import { CreateRoomDialog } from '../components/CreateRoomDialog';
+import { Game } from '../shared-types';
+import { GameEvent } from '../types';
 import { triviaService } from '../services/triviaService';
 
 export const Home: React.FC = () => {
@@ -98,29 +99,6 @@ export const Home: React.FC = () => {
       unsubscribe();
     };
   }, []); // Empty dependency array since we want this effect to run only once on mount
-
-  const handleCreateRoom = () => {
-    if (!playerName.trim()) {
-      setError('Please enter your name');
-      return;
-    }
-    if (!selectedGame) {
-      setError('Please select a trivia set');
-      return;
-    }
-    try {
-      console.log('Creating room with game:', selectedGame.id);
-      setIsCreatingRoom(true);
-      setError('');
-      websocketService.createRoom(selectedGame.id, playerName.trim());
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error('Error creating room:', error);
-      errorService.logError(error);
-      setError('Failed to create room. Please try again.');
-      setIsCreatingRoom(false);
-    }
-  };
 
   const handleJoinRoom = () => {
     if (!playerName.trim()) {
@@ -226,40 +204,16 @@ export const Home: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Dialog
+        <CreateRoomDialog
           open={showCreateDialog}
           onClose={() => {
             setShowCreateDialog(false);
             setSelectedGame(null);
             setIsCreatingRoom(false);
           }}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Select Trivia Set</DialogTitle>
-          <DialogContent>
-            <TriviaSetSelector
-              open={showCreateDialog}
-              onClose={() => {
-                setShowCreateDialog(false);
-                setSelectedGame(null);
-                setIsCreatingRoom(false);
-              }}
-              onSelect={handleGameSelected}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                setShowCreateDialog(false);
-                setSelectedGame(null);
-                setIsCreatingRoom(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </DialogActions>
-        </Dialog>
+          onGameSelected={handleGameSelected}
+          isCreatingRoom={isCreatingRoom}
+        />
 
         <Dialog open={showJoinDialog} onClose={() => setShowJoinDialog(false)}>
           <DialogTitle>Join Room</DialogTitle>

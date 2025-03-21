@@ -1,3 +1,5 @@
+import { Question } from './shared-types';
+
 export interface Player {
   id: string;
   name: string;
@@ -9,30 +11,7 @@ export interface Player {
   themeGuessCorrect?: boolean;
 }
 
-export interface Question {
-  question: string;
-  answer: string;
-}
 
-export interface Game {
-  id: string;
-  name: string;
-  theme: string;
-  questions: Question[];
-}
-
-export interface Room {
-  id: string;
-  host: string;
-  players: Player[];
-  gameState: 'waiting' | 'playing' | 'finished';
-  currentQuestion: number;
-  game: Game;
-  themeGuesses: Record<string, string>;
-  questionStartTime?: number;
-  maxScore: number;
-  timeLimit: number;
-}
 
 export type GameEvent =
   | { type: 'connected' }

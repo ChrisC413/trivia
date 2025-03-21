@@ -8,7 +8,8 @@ import {
   ListItemText,
   LinearProgress,
 } from '@mui/material';
-import { Player, Room } from '../types';
+
+import { Room } from '../shared-types';
 
 interface GameStatusProps {
   room: Room;
@@ -88,14 +89,14 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
                   <Typography>{player.score} points</Typography>
                 </Box>
               }
-              secondary={
-                player.lastAnswerTime && (
-                  <Typography variant="caption" color="text.secondary">
-                    Last answer: {formatTime((Date.now() - player.lastAnswerTime) / 1000)} ago
-                    {player.lastAnswerCorrect ? ' ✓' : ' ✗'}
-                  </Typography>
-                )
-              }
+              // secondary={
+              //   player.lastAnswerTime && (
+              //     <Typography variant="caption" color="text.secondary">
+              //       Last answer: {formatTime((Date.now() - player.lastAnswerTime) / 1000)} ago
+              //       {player.lastAnswerCorrect ? ' ✓' : ' ✗'}
+              //     </Typography>
+              //   )
+              // }
             />
           </ListItem>
         ))}

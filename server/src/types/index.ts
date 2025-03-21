@@ -1,3 +1,5 @@
+import { Question } from '../../shared/types';
+
 export interface Player {
   id: string;
   name: string;
@@ -5,10 +7,6 @@ export interface Player {
   isHost?: boolean;
 }
 
-export interface Question {
-  question: string;
-  answer: string;
-}
 
 export interface Game {
   id: string;

@@ -16,7 +16,8 @@ import {
 import QRCode from 'qrcode.react';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { websocketService } from '../services/websocket';
-import { Room, GameEvent } from '../types';
+import { GameEvent } from '../types';
+import { Room } from '../shared-types';
 
 interface HostViewProps {
   room: Room;

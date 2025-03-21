@@ -1,4 +1,4 @@
-import { Game } from '../types';
+import { Game } from '../shared-types';
 import { TriviaSet } from '../../../shared/types';
 // In a real application, this would be an API call to your backend
 const STORAGE_KEY = 'trivia_sets';

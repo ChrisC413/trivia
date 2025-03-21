@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import { websocketService } from '../services/websocket';
-import { Room, Player, Question } from '../types';
+import { Player } from '../types';
 import { HostView } from './HostView';
 import { PlayerView } from './PlayerView';
 import { PlayerNamePrompt } from '../components/PlayerNamePrompt';
-
+import { Room, Question } from '../shared-types';
 export const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const [room, setRoom] = useState<Room | null>(null);
@@ -140,6 +140,9 @@ export const GameRoom: React.FC = () => {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+      <Typography variant="h6" align="center" gutterBottom>
+        Game Room
+      </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

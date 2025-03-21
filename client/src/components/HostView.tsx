@@ -11,7 +11,7 @@ import {
   Chip,
   LinearProgress,
 } from '@mui/material';
-import { Room } from '../types';
+import { Room } from '../shared-types';
 
 interface HostViewProps {
   room: Room;
@@ -79,18 +79,18 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
                 <ListItem key={player.id}>
                   <ListItemText
                     primary={player.name}
-                    secondary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip label={`Score: ${player.score}`} color="primary" size="small" />
-                        {player.lastAnswerTime && (
-                          <Chip
-                            label={player.lastAnswerCorrect ? 'Correct' : 'Incorrect'}
-                            color={player.lastAnswerCorrect ? 'success' : 'error'}
-                            size="small"
-                          />
-                        )}
-                      </Box>
-                    }
+                    // secondary={
+                    //   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    //     <Chip label={`Score: ${player.score}`} color="primary" size="small" />
+                    //     {player.lastAnswerTime && (
+                    //       <Chip
+                    //         label={player.lastAnswerCorrect ? 'Correct' : 'Incorrect'}
+                    //         color={player.lastAnswerCorrect ? 'success' : 'error'}
+                    //         size="small"
+                    //       />
+                    //     )}
+                    //   </Box>
+                    // }
                   />
                 </ListItem>
               ))}
@@ -106,23 +106,23 @@ export const HostView: React.FC<HostViewProps> = ({ room, onNextQuestion, onEndG
             </Typography>
             <List>
               {room.players
-                .filter(p => p.themeGuess)
+                // .filter(p => p.themeGuess)
                 .map(player => (
                   <ListItem key={player.id}>
                     <ListItemText
                       primary={player.name}
-                      secondary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2">Guess: {player.themeGuess}</Typography>
-                          {player.themeGuessCorrect !== undefined && (
-                            <Chip
-                              label={player.themeGuessCorrect ? 'Correct' : 'Incorrect'}
-                              color={player.themeGuessCorrect ? 'success' : 'error'}
-                              size="small"
-                            />
-                          )}
-                        </Box>
-                      }
+                      // secondary={
+                      //   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      //     <Typography variant="body2">Guess: {player.themeGuess}</Typography>
+                      //     {player.themeGuessCorrect !== undefined && (
+                      //       <Chip
+                      //         label={player.themeGuessCorrect ? 'Correct' : 'Incorrect'}
+                      //         color={player.themeGuessCorrect ? 'success' : 'error'}
+                      //         size="small"
+                      //       />
+                      //     )}
+                      //   </Box>
+                      // }
                     />
                   </ListItem>
                 ))}

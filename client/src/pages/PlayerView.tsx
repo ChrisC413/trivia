@@ -8,7 +8,7 @@ import {
   Grid,
   CircularProgress,
 } from '@mui/material';
-import { Room } from '../types';
+import { Room } from '../shared-types';
 import { websocketService } from '../services/websocket';
 import { GameStatus } from '../components/GameStatus';
 
