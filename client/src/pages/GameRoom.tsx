@@ -149,7 +149,7 @@ export const GameRoom: React.FC = () => {
       {!isLoading && room && (
         <>
           {isHost ? (
-            <HostView room={room} onEndGame={handleEndGame} />
+            <HostView room={room} onEndGame={handleEndGame} onError={setError} />
           ) : (
             playerId && <PlayerView room={room} playerId={playerId} onError={setError} />
           )}

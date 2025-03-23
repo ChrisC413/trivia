@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Paper,
@@ -10,27 +9,62 @@ import {
   Grid,
   Chip,
   LinearProgress,
+  Container,
+  Snackbar,
 } from '@mui/material';
 import { Room } from '@trivia-game/shared';
+import React, { useState, useEffect } from 'react';
+import ShareLink from './ShareLinks';
 
 interface HostViewProps {
   room: Room;
   onEndGame: () => void;
+  onError: (error: string) => void;
 }
 
-export const HostView: React.FC<HostViewProps> = ({ room, onEndGame }) => {
+export const HostView: React.FC<HostViewProps> = ({ room, onEndGame, onError }) => {
+
+  const [gameUrl, setGameUrl] = useState<string>(window.location.href);
+  const [showCopiedNotification, setShowCopiedNotification] = useState(false);
+
+
   const currentQuestion = room.currentQuestion;
   const timeElapsed = room.questionStartTime ? (Date.now() - room.questionStartTime) / 1000 : 0;
   const maxTime = 30; // 30 seconds per question
   const progress = Math.min(timeElapsed / maxTime, 1);
   const timeRemaining = Math.max(maxTime - timeElapsed, 0);
 
+
+  useEffect(() => {
+    const handleCopyLink = async () => {
+      try {
+        await navigator.clipboard.writeText(gameUrl);
+        setShowCopiedNotification(true);
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+        onError('Failed to copy link to clipboard');
+      }
+    };
+  });
+
   function onNextQuestion(): void {
     throw new Error('Function not implemented.');
   }
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(gameUrl);
+      setShowCopiedNotification(true);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      onError('Failed to copy link to clipboard');
+    }
+  };
+
   return (
+    <Container maxWidth="lg">
     <Box sx={{ mt: 4 }}>
+    <ShareLink gameUrl={gameUrl} onCopy={handleCopyLink} />
       <Grid container spacing={3}>
         {/* Current Question */}
         <Grid item xs={12}>
@@ -132,7 +166,20 @@ export const HostView: React.FC<HostViewProps> = ({ room, onEndGame }) => {
             </List>
           </Paper>
         </Grid>
+
+
+
+
       </Grid>
     </Box>
+
+    <Snackbar
+        open={showCopiedNotification}
+        autoHideDuration={2000}
+        onClose={() => setShowCopiedNotification(false)}
+        message="Link copied to clipboard!"
+      />
+
+    </Container>
   );
 };
