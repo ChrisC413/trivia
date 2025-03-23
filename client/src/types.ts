@@ -1,4 +1,4 @@
-import { Question } from './shared-types';
+import { Question } from '@trivia-game/shared';
 
 export interface Player {
   id: string;

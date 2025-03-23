@@ -1,6 +1,6 @@
 import express from 'express';
 import { triviaService } from '../services/triviaService';
-// import { TriviaSet } from '../shared-types';
+// import { TriviaSet } from '@trivia-game/shared';
 
 const router = express.Router();
 

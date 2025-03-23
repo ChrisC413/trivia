@@ -9,7 +9,7 @@ import {
   LinearProgress,
 } from '@mui/material';
 
-import { Room } from '../shared-types';
+import { Room } from '@trivia-game/shared';
 
 interface GameStatusProps {
   room: Room;

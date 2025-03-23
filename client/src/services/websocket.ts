@@ -1,5 +1,5 @@
 import { GameEvent } from '../types';
-import { Room } from '../shared-types';
+import { Room } from '@trivia-game/shared';
 import { io, Socket } from 'socket.io-client';
 import { getOrCreatePlayerId } from '../utils/playerUtils';
 
@@ -207,14 +207,14 @@ export class WebSocketService {
     });
   }
 
-  public createRoom(gameId: string, playerName: string): void {
+  public createRoom(playerName: string, triviaSetId: string): void {
     if (!this.socket?.connected) {
       throw new Error('Socket not connected');
     }
     this.socket.emit('createRoom', { 
-      gameId, 
       playerName,
-      playerId: this.playerId 
+      playerId: this.playerId,
+      triviaSetId
     });
   }
 

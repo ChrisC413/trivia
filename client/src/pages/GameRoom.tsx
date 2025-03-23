@@ -3,10 +3,11 @@ import { useParams } from 'react-router-dom';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
 import { websocketService } from '../services/websocket';
 import { Player } from '../types';
-import { HostView } from './HostView';
-import { PlayerView } from './PlayerView';
+import { HostView } from '../components/HostView';
+import { PlayerView } from '../components/PlayerView';
 import { PlayerNamePrompt } from '../components/PlayerNamePrompt';
-import { Room, Question } from '../shared-types';
+import { Room, Question } from '@trivia-game/shared';
+
 export const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const [room, setRoom] = useState<Room | null>(null);
@@ -43,15 +44,16 @@ export const GameRoom: React.FC = () => {
     };
 
     const handlePlayerJoined = (data: { players: Player[] }) => {
-      if (room) {
-        setRoom({ ...room, players: data.players });
-        // Only set playerId for non-host players when they first join
-        if (!playerId && !isHost && playerName) {
-          const currentPlayer = data.players.find(p => p.name === playerName);
-          if (currentPlayer) {
-            setPlayerId(currentPlayer.id);
-            setIsLoading(false);
-          }
+      setRoom(prevRoom => {
+        if (!prevRoom) return null;
+        return { ...prevRoom, players: data.players };
+      });
+      // Only set playerId for non-host players when they first join
+      if (!playerId && !isHost && playerName) {
+        const currentPlayer = data.players.find(p => p.name === playerName);
+        if (currentPlayer) {
+          setPlayerId(currentPlayer.id);
+          setIsLoading(false);
         }
       }
     };
@@ -74,13 +76,14 @@ export const GameRoom: React.FC = () => {
     };
 
     const handleGameStarted = (data: { question: Question; questionNumber: number }) => {
-      if (room) {
-        setRoom({
-          ...room,
+      setRoom(prevRoom => {
+        if (!prevRoom) return null;
+        return {
+          ...prevRoom,
           gameState: 'playing',
           currentQuestion: data.questionNumber - 1,
-        });
-      }
+        };
+      });
     };
 
     const handleError = (error: { message: string }) => {
@@ -91,6 +94,7 @@ export const GameRoom: React.FC = () => {
         setShowNamePrompt(false);
       }
     };
+
 
     // Set up event listeners
     websocketService.on('roomCreated', handleRoomCreated);
@@ -120,7 +124,7 @@ export const GameRoom: React.FC = () => {
       websocketService.off('gameStarted', handleGameStarted);
       websocketService.off('error', handleError);
     };
-  }, [roomId, playerId, isHost, playerName, room]);
+  }, [roomId, playerId, isHost, playerName]);
 
   if (isLoading) {
     return (
@@ -138,6 +142,10 @@ export const GameRoom: React.FC = () => {
     );
   }
 
+  function handleEndGame(): void {
+    throw new Error('Function not implemented.');
+  }
+
   return (
     <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
       <Typography variant="h6" align="center" gutterBottom>
@@ -151,14 +159,14 @@ export const GameRoom: React.FC = () => {
 
       <PlayerNamePrompt open={showNamePrompt} onSubmit={handleNameSubmit} />
 
-      {isHost ? (
-        <HostView room={room} onError={setError} />
-      ) : playerName && playerId ? (
-        <PlayerView room={room} playerId={playerId} onError={setError} />
-      ) : (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-          <CircularProgress />
-        </Box>
+      {!isLoading && room && (
+        <>
+          {isHost ? (
+            <HostView room={room} game={room.game!} onEndGame={handleEndGame} />
+          ) : (
+            playerId && <PlayerView room={room} playerId={playerId} onError={setError} />
+          )}
+        </>
       )}
     </Box>
   );

@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { Game } from '../types';
-import { TriviaSet } from '../shared-types';
+import { TriviaSet } from '@trivia-game/shared';
 
 const TRIVIA_SETS_DIR = path.join(__dirname, '../../data/trivia-sets');
 

@@ -7,16 +7,15 @@ import {
   Button
 } from '@mui/material';
 import { TriviaSetSelector } from './TriviaSetSelector';
-import { Game } from '../shared-types';
 
-interface CreateRoomDialogProps {
+interface SelectTriviaSetDialogProps {
   open: boolean;
   onClose: () => void;
-  onGameSelected: (game: Game) => void;
+  onGameSelected: (triviaSetId: string) => void;
   isCreatingRoom: boolean;
 }
 
-export const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({
+export const SelectTriviaSetDialog: React.FC<SelectTriviaSetDialogProps> = ({
   open,
   onClose,
   onGameSelected,
@@ -26,6 +25,10 @@ export const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({
     if (!isCreatingRoom) {
       onClose();
     }
+  };
+
+  const handleTriviaSetSelected = (triviaSet: { id: string }) => {
+    onGameSelected(triviaSet.id);
   };
 
   return (
@@ -40,7 +43,7 @@ export const CreateRoomDialog: React.FC<CreateRoomDialogProps> = ({
         <TriviaSetSelector
           open={open}
           onClose={handleClose}
-          onSelect={onGameSelected}
+          onSelect={handleTriviaSetSelected}
         />
       </DialogContent>
       <DialogActions>

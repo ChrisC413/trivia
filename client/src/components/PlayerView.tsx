@@ -8,7 +8,7 @@ import {
   Grid,
   CircularProgress,
 } from '@mui/material';
-import { Room } from '../shared-types';
+import { Room } from '@trivia-game/shared';
 import { websocketService } from '../services/websocket';
 import { GameStatus } from '../components/GameStatus';
 
@@ -82,11 +82,10 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
                 Question {room.currentQuestion}:
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {room.game.questions[room.currentQuestion - 1].question}
+                {room.game?.questions[room.currentQuestion - 1].question}
               </Typography>
               <Box sx={{ mt: 2 }}>
                 <TextField
-                  fullWidth
                   label="Your Answer"
                   value={answer}
                   onChange={e => setAnswer(e.target.value)}
@@ -137,7 +136,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
             Game Over!
           </Typography>
           <Typography variant="h6" align="center" color="primary">
-            The theme was: {room.game.theme}
+            The theme was: {room.game?.theme}
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Typography variant="body1" align="center">

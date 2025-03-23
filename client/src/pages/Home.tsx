@@ -19,23 +19,23 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { websocketService } from '../services/websocket';
 import { errorService } from '../services/errorService';
 import { CreateTriviaSet } from '../components/CreateTriviaSet';
-import { CreateRoomDialog } from '../components/CreateRoomDialog';
-import { Game } from '../shared-types';
+import { SelectTriviaSetDialog } from '../components/SelectTriviaSet';
 import { GameEvent } from '../types';
 import { triviaService } from '../services/triviaService';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
+  const [playerId, setPlayerId] = useState('');
   const [roomId, setRoomId] = useState('');
   const [error, setError] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [showCreateTriviaSet, setShowCreateTriviaSet] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [triviaSetId, setTriviaSetId] = useState('');
 
   useEffect(() => {
     // Connect to WebSocket server when component mounts
@@ -121,24 +121,23 @@ export const Home: React.FC = () => {
     }
   };
 
-  const handleGameSelected = (game: Game) => {
-    console.log('Game selected:', game);
-    setSelectedGame(game);
-    setShowCreateDialog(false);
-    // Create room immediately after game selection
-    if (game) {
-      try {
-        console.log('Creating room with game:', game.id);
-        setIsCreatingRoom(true);
-        setError('');
-        websocketService.createRoom(game.id, playerName.trim());
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        console.error('Error creating room:', error);
-        errorService.logError(error);
-        setError('Failed to create room. Please try again.');
-        setIsCreatingRoom(false);
-      }
+  const handleCreateGame = (selectedTriviaSetId: string) => {
+    if (!playerName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    
+    try {
+      console.log('Creating room');
+      setIsCreatingRoom(true);
+      setError('');
+      websocketService.createRoom(playerName.trim(), selectedTriviaSetId);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Error creating room:', error);
+      errorService.logError(error);
+      setError('Failed to create room. Please try again.');
+      setIsCreatingRoom(false);
     }
   };
 
@@ -204,14 +203,13 @@ export const Home: React.FC = () => {
           </Grid>
         </Grid>
 
-        <CreateRoomDialog
+        <SelectTriviaSetDialog
           open={showCreateDialog}
           onClose={() => {
             setShowCreateDialog(false);
-            setSelectedGame(null);
             setIsCreatingRoom(false);
           }}
-          onGameSelected={handleGameSelected}
+          onGameSelected={handleCreateGame}
           isCreatingRoom={isCreatingRoom}
         />
 

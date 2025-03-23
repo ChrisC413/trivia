@@ -1,0 +1,14 @@
+{
+  "name": "@trivia-game/shared",
+  "version": "1.0.1",
+  "description": "Shared types for the trivia game",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "~5.0.0"
+  }
+} 
