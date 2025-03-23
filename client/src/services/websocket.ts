@@ -100,6 +100,7 @@ export class WebSocketService {
       'playerLeft',
       'roomDeleted',
       'error',
+      'playerNameSubmitted',
     ].forEach(eventType => {
       this.socket?.on(eventType, data => {
         this.eventHandlers.forEach(handler =>
@@ -140,6 +141,7 @@ export class WebSocketService {
     this.socket.on(event, callback);
   }
 
+
   public off(event: string, callback: (...args: any[]) => void) {
     if (!this.socket) {
       console.warn('Socket not connected, cannot remove listener');
@@ -150,6 +152,11 @@ export class WebSocketService {
 
   public getPlayerId(): string {
     return this.playerId;
+  }
+
+  public submitPlayerName(name: string): void {
+    if (!this.socket) throw new Error('Not connected to server');
+    this.socket.emit('submitPlayerName', { playerId: this.playerId, name: name });
   }
 
   public getRoom(roomId: string): Promise<Room> {
@@ -175,7 +182,9 @@ export class WebSocketService {
         this.socket?.off('roomData', handleRoomData);
         this.socket?.off('error', handleError);
         // Resolve immediately after receiving valid data
+        
         resolve(data.room);
+        
       };
 
       const handleError = (error: { message: string }) => {
@@ -229,9 +238,9 @@ export class WebSocketService {
     });
   }
 
-  public startGame(roomId: string, gameId: string): void {
+  public beginGame(roomId: string): void {
     if (!this.socket) throw new Error('Not connected to server');
-    this.socket.emit('startGame', { roomId, gameId });
+    this.socket.emit('gameStarted', { roomId });
   }
 
   public submitAnswer(roomId: string, answer: string): void {

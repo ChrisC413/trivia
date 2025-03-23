@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -8,6 +8,7 @@ import {
   Button,
   Alert,
 } from '@mui/material';
+import { websocketService } from '../services/websocket';
 
 interface PlayerNamePromptProps {
   open: boolean;
@@ -17,7 +18,9 @@ interface PlayerNamePromptProps {
 export const PlayerNamePrompt: React.FC<PlayerNamePromptProps> = ({ open, onSubmit }) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [submitted, setSubmitted] = useState(false); // New state to track submission
 
+  
   const handleSubmit = () => {
     if (!name.trim()) {
       setError('Please enter your name');

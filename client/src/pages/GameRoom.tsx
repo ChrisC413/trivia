@@ -25,25 +25,40 @@ export const GameRoom: React.FC = () => {
     // Join the room with the provided name
     try {
       websocketService.joinRoom(roomId!, name);
+      setIsLoading(false);
+      setShowNamePrompt(true);
     } catch (err) {
       console.error('Failed to join room:', err);
       setError('Failed to join room. Please try again.');
-      setIsLoading(false);
-      setShowNamePrompt(true);
+
     }
   };
 
   useEffect(() => {
     if (!roomId) return;
 
-    const handleRoomCreated = (data: { roomId: string; room: Room }) => {
-      setRoom(data.room);
-      setPlayerId(data.room.host);
-      setIsLoading(false);
-      setIsHost(true);
+    const initializeRoom = async () => {
+      console.log('Initializing room:', roomId);
+      try {
+        console.log('Calling websocketService.getRoom with roomId:', roomId);
+        setRoom(await websocketService.getRoom(roomId));
+        console.log('Successfully fetched room data');
+        setIsLoading(false);
+        if(room) {
+          handleRoomData({ room: room });
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to get room data:', err);
+        setError('Failed to load room data. Please try again.');
+
+        }
     };
 
+    initializeRoom();
+
     const handlePlayerJoined = (data: { players: Player[] }) => {
+      console.log('Player joined event received:', data);
       setRoom(prevRoom => {
         if (!prevRoom) return null;
         return { ...prevRoom, players: data.players };
@@ -59,20 +74,25 @@ export const GameRoom: React.FC = () => {
     };
 
     const handleRoomData = (data: { room: Room }) => {
-      console.log('Received room data:', data);
+      console.log('Handling Room Data:', data);
       setRoom(data.room);
 
       // Check if current user is the host
       const currentPlayerId = websocketService.getPlayerId();
       if (data.room.host === currentPlayerId) {
+        console.log('Current player is the host');
         setIsHost(true);
-        setPlayerId(currentPlayerId);
         setIsLoading(false);
-      } else if (!playerName) {
-        // If not host and no player name, show name prompt
+      } else {
+        console.log('Current player is a guest');
         setShowNamePrompt(true);
         setIsLoading(false);
       }
+    };
+
+    const handlePlayerNameSubmitted = (event: { name: string }) => {
+      console.log(`Player name submitted: ${event.name}`);
+      setShowNamePrompt(false);
     };
 
     const handleError = (error: { message: string }) => {
@@ -84,34 +104,22 @@ export const GameRoom: React.FC = () => {
       }
     };
 
-
     // Set up event listeners
-    websocketService.on('roomCreated', handleRoomCreated);
-    websocketService.on('playerJoined', handlePlayerJoined);
-    websocketService.on('roomData', handleRoomData);
-    websocketService.on('error', handleError);
-
-    // Get initial room state
-    const initializeRoom = async () => {
-      try {
-        console.log('Initializing room:', roomId);
-        await websocketService.getRoom(roomId);
-      } catch (err) {
-        console.error('Failed to get room data:', err);
-        setError('Failed to load room data. Please try again.');
-        setIsLoading(false);
-      }
-    };
-
-    initializeRoom();
+    console.log('Setting up websocket event listeners');
+    websocketService.on('playerNameSubmitted', handlePlayerNameSubmitted);
+    // websocketService.on('roomCreated', handleRoomCreated);
+    // websocketService.on('playerJoined', handlePlayerJoined);
+    // websocketService.on('roomData', handleRoomData);
+    // websocketService.on('error', handleError);
 
     return () => {
-      websocketService.off('roomCreated', handleRoomCreated);
-      websocketService.off('playerJoined', handlePlayerJoined);
-      websocketService.off('roomData', handleRoomData);
-      websocketService.off('error', handleError);
+      console.log('Cleaning up websocket event listeners');
+      // websocketService.off('roomCreated', handleRoomCreated);
+      // websocketService.off('playerJoined', handlePlayerJoined);
+      // websocketService.off('roomData', handleRoomData);
+      // websocketService.off('error', handleError);
     };
-  }, [roomId, playerId, isHost, playerName]);
+  }, [roomId, playerId, isHost, playerName, room]);
 
   if (isLoading) {
     return (
@@ -138,11 +146,11 @@ export const GameRoom: React.FC = () => {
       <Typography variant="h6" align="center" gutterBottom>
         Game Room
       </Typography>
-      {error && (
+      {/* {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}
+      )} */}
 
       <PlayerNamePrompt open={showNamePrompt} onSubmit={handleNameSubmit} />
 

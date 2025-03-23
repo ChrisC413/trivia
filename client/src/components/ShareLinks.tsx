@@ -11,9 +11,6 @@ interface ShareLinkProps {
 const ShareLink: React.FC<ShareLinkProps> = ({ gameUrl, onCopy }) => {
   return (
     <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Share with Players:
-      </Typography>
       <Box
         sx={{
           display: 'flex',

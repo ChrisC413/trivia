@@ -3,9 +3,9 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import { generateRoomId } from './constants/words';
-import { Room, PublicPlayer } from '@trivia-game/shared';
 import triviaRoutes from './routes/trivia';
 import { RoomService } from './services/RoomService';
+import { playerNameService } from './services/PlayerNameService';
 
 const app = express();
 const server = createServer(app);
@@ -105,7 +105,26 @@ io.on('connection', (socket: Socket) => {
   });
 
   // ... rest of the socket handlers with proper type annotations
+
+  socket.on('beginGame', ({ roomId }) => {
+    const room = roomService.getRoom(roomId);
+    if (room) {
+      roomService.startGame(roomId);
+      io.to(roomId).emit('gameStarted', { room });
+    } else {
+      socket.emit('error', { message: 'Room not found' });
+    }
+  });
+
+  socket.on('submitPlayerName', ({ playerId, playerName }, socketid) => {
+    const token =  playerNameService.registerPlayer(playerId, playerName);
+    // Emit the response only to the client who submitted the event
+    socket.emit('playerNameSubmitted', { playerId, playerName, token });
+  });
+  
 });
+
+
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
