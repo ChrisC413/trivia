@@ -1,68 +1,57 @@
-import { Game } from '@trivia-game/shared';
 import { TriviaSet } from '../../../shared/types';
-// In a real application, this would be an API call to your backend
-const STORAGE_KEY = 'trivia_sets';
-
-const RANDOM_NAMES = [
-  'Fun Facts Fiesta',
-  'Brain Teaser Bonanza',
-  'Knowledge Quest',
-  'Trivia Time Machine',
-  'Mind Bender Marathon',
-  'Quiz Quest',
-  'Brainstorm Bonanza',
-  'Knowledge Nuggets',
-  'Trivia Treasure Hunt',
-  'Brain Teaser Bash',
-  'Quiz Carnival',
-  'Knowledge Kingdom',
-  'Trivia Time Travel',
-  'Brain Buster Blast',
-  'Quiz Quest Adventure',
-];
-
-
+const API_URL = 'http://localhost:5001/api/trivia'; // Adjust the URL as needed
 
 export const triviaService = {
-  getRandomName(): string {
-    return RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
+  async getRandomName(): Promise<string> {
+    const response = await fetch(`${API_URL}/random-name`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch random name');
+    }
+    return response.json();
   },
 
-  saveTriviaSet(triviaSet: Omit<TriviaSet, 'id' | 'createdAt' | 'rating'>): TriviaSet {
-    const existingSets = this.getTriviaSets();
-    const newSet: TriviaSet = {
-      ...triviaSet,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      rating: 0,
-    };
+  async saveTriviaSet(triviaSet: Omit<TriviaSet, 'id' | 'createdAt' | 'rating'>): Promise<TriviaSet> {
+    const response = await fetch(`${API_URL}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(triviaSet),
+    });
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...existingSets, newSet]));
-    return newSet;
+    if (!response.ok) {
+      throw new Error('Failed to save trivia set');
+    }
+    return response.json();
   },
 
-  getTriviaSets(): TriviaSet[] {
-    const sets = localStorage.getItem(STORAGE_KEY);
-    return sets ? JSON.parse(sets) : [];
+  async getTriviaSets(): Promise<TriviaSet[]> {
+    const response = await fetch(`${API_URL}/`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch trivia sets');
+    }
+    return response.json();
   },
 
-  getTriviaSet(id: string): TriviaSet | undefined {
-    const sets = this.getTriviaSets();
-    return sets.find(set => set.id === id);
+  async getTriviaSet(id: string): Promise<TriviaSet | undefined> {
+    const response = await fetch(`${API_URL}/trivia-sets/${id}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch trivia set');
+    }
+    return response.json();
   },
 
-  updateRating(id: string, rating: number): void {
-    const sets = this.getTriviaSets();
-    const updatedSets = sets.map(set => (set.id === id ? { ...set, rating } : set));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSets));
-  },
+  async updateRating(id: string, rating: number): Promise<void> {
+    const response = await fetch(`${API_URL}/trivia-sets/${id}/rating`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ rating }),
+    });
 
-  convertToGame(triviaSet: TriviaSet): Game {
-    return {
-      id: triviaSet.id,
-      name: triviaSet.name,
-      theme: triviaSet.theme,
-      questions: triviaSet.questions,
-    };
+    if (!response.ok) {
+      throw new Error('Failed to update rating');
+    }
   },
 };

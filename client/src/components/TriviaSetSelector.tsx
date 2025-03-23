@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -27,7 +27,26 @@ export const TriviaSetSelector: React.FC<TriviaSetSelectorProps> = ({
   onClose,
   onSelect,
 }) => {
-  const triviaSets = triviaService.getTriviaSets();
+  const [triviaSets, setTriviaSets] = useState<TriviaSet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTriviaSets = async () => {
+      try {
+        const sets = await triviaService.getTriviaSets();
+        setTriviaSets(sets);
+      } catch (err) {
+        setError('Failed to load trivia sets.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (open) {
+      fetchTriviaSets();
+    }
+  }, [open]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -42,7 +61,15 @@ export const TriviaSetSelector: React.FC<TriviaSetSelectorProps> = ({
       <DialogTitle>Select a Trivia Set</DialogTitle>
       <DialogContent>
         <Box sx={{ mt: 2 }}>
-          {triviaSets.length === 0 ? (
+          {loading ? (
+            <Typography color="text.secondary" align="center">
+              Loading trivia sets...
+            </Typography>
+          ) : error ? (
+            <Typography color="error" align="center">
+              {error}
+            </Typography>
+          ) : triviaSets.length === 0 ? (
             <Typography color="text.secondary" align="center">
               No trivia sets available. Create one first!
             </Typography>

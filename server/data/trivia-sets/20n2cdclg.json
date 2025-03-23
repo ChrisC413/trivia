@@ -1,0 +1,17 @@
+{
+  "name": "My test trivia",
+  "theme": "stuff",
+  "questions": [
+    {
+      "question": "q1",
+      "answer": "a1"
+    },
+    {
+      "question": "q2",
+      "answer": "a2"
+    }
+  ],
+  "id": "20n2cdclg",
+  "createdAt": "2025-03-23T14:09:16.450Z",
+  "rating": 0
+}

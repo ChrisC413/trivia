@@ -82,7 +82,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
                 Question {room.currentQuestion}:
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {room.game?.questions[room.currentQuestion - 1].question}
+                {room.currentQuestion}
               </Typography>
               <Box sx={{ mt: 2 }}>
                 <TextField
@@ -136,7 +136,7 @@ export const PlayerView: React.FC<PlayerViewProps> = ({ room, playerId, onError 
             Game Over!
           </Typography>
           <Typography variant="h6" align="center" color="primary">
-            The theme was: {room.game?.theme}
+            The theme was: {"todo"}
           </Typography>
           <Box sx={{ mt: 2 }}>
             <Typography variant="body1" align="center">

@@ -11,16 +11,15 @@ import {
   Chip,
   LinearProgress,
 } from '@mui/material';
-import { Room, Game } from '@trivia-game/shared';
+import { Room } from '@trivia-game/shared';
 
 interface HostViewProps {
   room: Room;
-  game: Game;
   onEndGame: () => void;
 }
 
-export const HostView: React.FC<HostViewProps> = ({ room, game, onEndGame }) => {
-  const currentQuestion = game.questions[room.currentQuestion - 1];
+export const HostView: React.FC<HostViewProps> = ({ room, onEndGame }) => {
+  const currentQuestion = room.currentQuestion;
   const timeElapsed = room.questionStartTime ? (Date.now() - room.questionStartTime) / 1000 : 0;
   const maxTime = 30; // 30 seconds per question
   const progress = Math.min(timeElapsed / maxTime, 1);
@@ -37,13 +36,13 @@ export const HostView: React.FC<HostViewProps> = ({ room, game, onEndGame }) => 
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Question {room.currentQuestion} of {game.questions.length}
+              Question {room.currentQuestion} of { "??"}
             </Typography>
             <Typography variant="h5" gutterBottom>
-              {currentQuestion.question}
+              {currentQuestion}
             </Typography>
             <Typography variant="body1" color="text.secondary" gutterBottom>
-              Answer: {currentQuestion.answer}
+              Answer: {"not provided"}
             </Typography>
             <Box sx={{ mt: 2 }}>
               <LinearProgress
@@ -61,7 +60,7 @@ export const HostView: React.FC<HostViewProps> = ({ room, game, onEndGame }) => 
                 variant="contained"
                 color="primary"
                 onClick={onNextQuestion}
-                disabled={room.currentQuestion === game.questions.length}
+                disabled={room.remainingQuestions === 0}
               >
                 Next Question
               </Button>

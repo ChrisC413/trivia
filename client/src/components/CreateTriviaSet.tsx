@@ -32,9 +32,17 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
   const [questions, setQuestions] = useState<Question[]>([{ question: '', answer: '' }]);
 
   useEffect(() => {
-    if (open) {
-      setName(triviaService.getRandomName());
-    }
+    const fetchRandomName = async () => {
+      if (open) {
+        try {
+          const randomName = await triviaService.getRandomName();
+          setName(randomName);
+        } catch (error) {
+          console.error('Failed to fetch random name:', error);
+        }
+      }
+    };
+    fetchRandomName();
   }, [open]);
 
   const handleAddQuestion = () => {
@@ -69,8 +77,13 @@ export const CreateTriviaSet: React.FC<CreateTriviaSetProps> = ({ open, onClose,
     onClose();
   };
 
-  const handleNewRandomName = () => {
-    setName(triviaService.getRandomName());
+  const handleNewRandomName = async () => {
+    try {
+      const randomName = await triviaService.getRandomName();
+      setName(randomName);
+    } catch (error) {
+      console.error('Failed to fetch random name:', error);
+    }
   };
 
   return (

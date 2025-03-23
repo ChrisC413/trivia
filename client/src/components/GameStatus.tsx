@@ -18,23 +18,6 @@ interface GameStatusProps {
 
 export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId }) => {
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [currentScore, setCurrentScore] = useState(room.maxScore);
-
-  useEffect(() => {
-    if (room.gameState !== 'playing' || !room.questionStartTime) return;
-
-    const timer = setInterval(() => {
-      const elapsed = (Date.now() - room.questionStartTime!) / 1000;
-      setTimeElapsed(elapsed);
-
-      // Calculate current possible score
-      const scoreDeduction = Math.floor(elapsed / 5) * (room.maxScore * 0.1);
-      const newScore = Math.max(0, room.maxScore - scoreDeduction);
-      setCurrentScore(newScore);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [room.gameState, room.questionStartTime, room.maxScore]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -51,11 +34,11 @@ export const GameStatus: React.FC<GameStatusProps> = ({ room, currentPlayerId })
           Time Elapsed: {formatTime(timeElapsed)}
         </Typography>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Current Question Score: {Math.round(currentScore)} points
+          Current Question/ Score/status: 
         </Typography>
         <LinearProgress
           variant="determinate"
-          value={(currentScore / room.maxScore) * 100}
+          value={0}
           sx={{ height: 8, borderRadius: 4 }}
         />
       </Box>

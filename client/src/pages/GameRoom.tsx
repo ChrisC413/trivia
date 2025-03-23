@@ -75,17 +75,6 @@ export const GameRoom: React.FC = () => {
       }
     };
 
-    const handleGameStarted = (data: { question: Question; questionNumber: number }) => {
-      setRoom(prevRoom => {
-        if (!prevRoom) return null;
-        return {
-          ...prevRoom,
-          gameState: 'playing',
-          currentQuestion: data.questionNumber - 1,
-        };
-      });
-    };
-
     const handleError = (error: { message: string }) => {
       console.error('Received error:', error);
       setError(error.message);
@@ -100,7 +89,6 @@ export const GameRoom: React.FC = () => {
     websocketService.on('roomCreated', handleRoomCreated);
     websocketService.on('playerJoined', handlePlayerJoined);
     websocketService.on('roomData', handleRoomData);
-    websocketService.on('gameStarted', handleGameStarted);
     websocketService.on('error', handleError);
 
     // Get initial room state
@@ -121,7 +109,6 @@ export const GameRoom: React.FC = () => {
       websocketService.off('roomCreated', handleRoomCreated);
       websocketService.off('playerJoined', handlePlayerJoined);
       websocketService.off('roomData', handleRoomData);
-      websocketService.off('gameStarted', handleGameStarted);
       websocketService.off('error', handleError);
     };
   }, [roomId, playerId, isHost, playerName]);
@@ -162,7 +149,7 @@ export const GameRoom: React.FC = () => {
       {!isLoading && room && (
         <>
           {isHost ? (
-            <HostView room={room} game={room.game!} onEndGame={handleEndGame} />
+            <HostView room={room} onEndGame={handleEndGame} />
           ) : (
             playerId && <PlayerView room={room} playerId={playerId} onError={setError} />
           )}
