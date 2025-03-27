@@ -75,7 +75,7 @@ io.on('connection', (socket: Socket) => {
     }
 
     console.log('Found room:', roomId, 'with state:', room.gameState);
-    socket.join(roomId);
+    // socket.join(roomId);
     
     socket.emit('roomData', { room });
   });
@@ -120,6 +120,14 @@ io.on('connection', (socket: Socket) => {
     const token =  playerNameService.registerPlayer(playerId, playerName);
     // Emit the response only to the client who submitted the event
     socket.emit('playerNameSubmitted', { playerId, playerName, token });
+  });
+
+  socket.on('message', (message) => {
+    console.log('Received lost message:', message);
+  });
+
+  socket.onAny((eventName, arg) => {
+    console.log('Received lost event:', eventName, "-" , arg);
   });
   
 });

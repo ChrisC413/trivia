@@ -26,7 +26,9 @@ export const PlayerNamePrompt: React.FC<PlayerNamePromptProps> = ({ open, onSubm
       setError('Please enter your name');
       return;
     }
+    websocketService.submitPlayerName(name.trim());
     onSubmit(name.trim());
+
   };
 
   return (

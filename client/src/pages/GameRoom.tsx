@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, CircularProgress, Alert, Typography } from '@mui/material';
-import { websocketService } from '../services/websocket';
+import { WebSocketService } from '../services/websocket';
 import { Player } from '../types';
 import { HostView } from '../components/HostView';
 import { PlayerView } from '../components/PlayerView';
 import { PlayerNamePrompt } from '../components/PlayerNamePrompt';
-import { Room, Question } from '@trivia-game/shared';
+import { Room } from '@trivia-game/shared';
 
 export const GameRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -17,6 +17,9 @@ export const GameRoom: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [playerName, setPlayerName] = useState<string | null>(null);
+  
+  // Create a new instance of WebSocketService
+  const websocketService = new WebSocketService();
 
   const handleNameSubmit = (name: string) => {
     setPlayerName(name);
@@ -24,13 +27,12 @@ export const GameRoom: React.FC = () => {
     setIsLoading(true);
     // Join the room with the provided name
     try {
-      websocketService.joinRoom(roomId!, name);
+      // websocketService.joinRoom(roomId!, name);
       setIsLoading(false);
       setShowNamePrompt(true);
     } catch (err) {
       console.error('Failed to join room:', err);
       setError('Failed to join room. Please try again.');
-
     }
   };
 
@@ -44,18 +46,19 @@ export const GameRoom: React.FC = () => {
         setRoom(await websocketService.getRoom(roomId));
         console.log('Successfully fetched room data');
         setIsLoading(false);
-        if(room) {
+        if (room) {
           handleRoomData({ room: room });
           setIsLoading(false);
         }
       } catch (err) {
         console.error('Failed to get room data:', err);
         setError('Failed to load room data. Please try again.');
-
-        }
+      }
     };
 
-    initializeRoom();
+    if (isLoading) {
+      initializeRoom();
+    }
 
     const handlePlayerJoined = (data: { players: Player[] }) => {
       console.log('Player joined event received:', data);
@@ -91,7 +94,7 @@ export const GameRoom: React.FC = () => {
     };
 
     const handlePlayerNameSubmitted = (event: { name: string }) => {
-      console.log(`Player name submitted: ${event.name}`);
+      console.log(`Player name came back: ${event.name}`);
       setShowNamePrompt(false);
     };
 
@@ -107,19 +110,18 @@ export const GameRoom: React.FC = () => {
     // Set up event listeners
     console.log('Setting up websocket event listeners');
     websocketService.on('playerNameSubmitted', handlePlayerNameSubmitted);
-    // websocketService.on('roomCreated', handleRoomCreated);
-    // websocketService.on('playerJoined', handlePlayerJoined);
-    // websocketService.on('roomData', handleRoomData);
-    // websocketService.on('error', handleError);
+    websocketService.on('roomData', handleRoomData);
+    websocketService.on('playerJoined', handlePlayerJoined);
+    websocketService.on('error', handleError);
 
     return () => {
       console.log('Cleaning up websocket event listeners');
-      // websocketService.off('roomCreated', handleRoomCreated);
-      // websocketService.off('playerJoined', handlePlayerJoined);
-      // websocketService.off('roomData', handleRoomData);
-      // websocketService.off('error', handleError);
+      websocketService.off('playerNameSubmitted', handlePlayerNameSubmitted);
+      websocketService.off('roomData', handleRoomData);
+      websocketService.off('playerJoined', handlePlayerJoined);
+      websocketService.off('error', handleError);
     };
-  }, [roomId, playerId, isHost, playerName, room]);
+  }, [roomId, playerId, isHost, playerName, room,isLoading, websocketService]);
 
   if (isLoading) {
     return (
@@ -146,11 +148,6 @@ export const GameRoom: React.FC = () => {
       <Typography variant="h6" align="center" gutterBottom>
         Game Room
       </Typography>
-      {/* {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )} */}
 
       <PlayerNamePrompt open={showNamePrompt} onSubmit={handleNameSubmit} />
 

@@ -34,12 +34,12 @@ export class WebSocketService {
     this.socket = io('http://localhost:5001', {
       reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      timeout: 10000,
+      reconnectionDelay: 500,
+      timeout: 2000,
       autoConnect: true,
-      auth: {
-        playerId: this.playerId
-      }
+      // auth: {
+      //   playerId: this.playerId
+      // }
     });
     
     this.setupSocketHandlers();
@@ -156,6 +156,7 @@ export class WebSocketService {
 
   public submitPlayerName(name: string): void {
     if (!this.socket) throw new Error('Not connected to server');
+    console.log('Submitting player name:', name);
     this.socket.emit('submitPlayerName', { playerId: this.playerId, name: name });
   }
 
@@ -164,9 +165,11 @@ export class WebSocketService {
       if (!this.socket?.connected) {
         console.log('Socket not connected, initializing connection...');
         this.initializeConnection();
+        console.log('Initialized connection');
       }
 
       if (!this.socket) {
+        console.log('Socket not connected, rejecting promise');
         reject(new Error('Socket not connected'));
         return;
       }
