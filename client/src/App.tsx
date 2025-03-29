@@ -22,8 +22,8 @@ function App() {
   // Clean up WebSocket connection when the app unmounts
   React.useEffect(() => {
     return () => {
-      // console.log('Disconnecting websocket');
-      // websocketService.disconnect();
+      console.log('Disconnecting websocket');
+      websocketService.disconnect();
     };
   }, []);
 

@@ -278,6 +278,9 @@ export class WebSocketService {
     }
     this.eventHandlers = [];
   }
+  public isConnected(): boolean {
+    return this.socket?.connected ?? false;
+  }
 }
 
 export const websocketService = new WebSocketService();
